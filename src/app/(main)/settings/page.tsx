@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
-import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import type { ThemePreference, Visibility } from "@/types/database";
 
 export default async function SettingsPage() {
@@ -17,5 +16,5 @@ export default async function SettingsPage() {
     activityVisibility: (settings?.activity_visibility ?? "public") as Visibility,
     experienceVisibility: (settings?.experience_visibility ?? "public") as Visibility,
   };
-  return <ThemeProvider initialTheme={initial.theme}><SettingsPanel initial={initial} email={user.email ?? ""}/></ThemeProvider>;
+  return <SettingsPanel initial={initial} email={user.email ?? ""}/>;
 }
