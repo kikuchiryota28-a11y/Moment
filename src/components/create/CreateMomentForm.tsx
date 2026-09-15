@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createMoment } from "@/actions/moments";
 import { MediaUploader, type UploadedMedia } from "./MediaUploader";
@@ -12,19 +12,36 @@ export function CreateMomentForm() {
   const [rating, setRating] = useState(5);
   const [again, setAgain] = useState(true);
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); setError("");
+  const [isPending, startTransition] = useTransition();
+
+  function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError("");
     const form = new FormData(e.currentTarget);
-    const result = await createMoment({
-      title: String(form.get("title") ?? ""), description: String(form.get("description") ?? ""), why: String(form.get("why") ?? ""),
-      category: String(form.get("category") ?? ""), location: String(form.get("location") ?? ""),
-      durationMinutes: Number(form.get("duration")) || undefined, estimatedCost: Number(form.get("cost")) || undefined,
-      rating, wouldDoAgain: again, media,
+    const input = {
+      title: String(form.get("title") ?? ""),
+      description: String(form.get("description") ?? ""),
+      why: String(form.get("why") ?? ""),
+      category: String(form.get("category") ?? ""),
+      location: String(form.get("location") ?? ""),
+      durationMinutes: Number(form.get("duration")) || undefined,
+      estimatedCost: Number(form.get("cost")) || undefined,
+      rating,
+      wouldDoAgain: again,
+      media,
+    };
+
+    startTransition(async () => {
+      const result = await createMoment(input);
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+      router.push(`/moment/${result.data.id}`);
+      router.refresh();
     });
-    if (!result.ok) { setError(result.error ?? Object.values(result.errors ?? {})[0] ?? "Could not publish."); setBusy(false); return; }
-    router.push(`/moment/${result.id}`);
   }
+
   return <form onSubmit={submit} className="space-y-6">
     <MediaUploader value={media} onChange={setMedia}/>
     <Field name="title" label="What did you do?" placeholder="Get off at a random station and explore" />
@@ -35,8 +52,9 @@ export function CreateMomentForm() {
     <div><label className="mb-2 block text-sm font-black">Rating</label><div className="flex gap-2">{[1,2,3,4,5].map((n) => <button type="button" key={n} onClick={() => setRating(n)} className={`text-3xl ${n <= rating ? "text-[#ef6b35]" : "text-[#cfc7bb]"}`}>★</button>)}</div></div>
     <div><label className="mb-2 block text-sm font-black">Would you do it again?</label><div className="grid grid-cols-2 gap-2">{[[true,"Yes"],[false,"No"]].map(([v,label]) => <button type="button" key={String(v)} onClick={() => setAgain(v as boolean)} className={`rounded-2xl border px-4 py-3 text-sm font-bold ${again === v ? "border-[#171614] bg-[#171614] text-white" : "border-[#ded8ce] bg-white"}`}>{label}</button>)}</div></div>
     {error && <p role="alert" className="rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-700">{error}</p>}
-    <button disabled={busy} onClick={() => setBusy(true)} className="w-full rounded-2xl bg-[#171614] px-5 py-4 font-black text-white disabled:opacity-50">{busy ? "Publishing…" : "Publish Moment"}</button>
+    <button disabled={isPending} type="submit" className="w-full rounded-2xl bg-[#171614] px-5 py-4 font-black text-white disabled:opacity-50">{isPending ? "Publishing…" : "Publish Moment"}</button>
   </form>;
 }
+
 function Field({ name, label, placeholder, type="text" }: { name: string; label: string; placeholder?: string; type?: string }) { return <div><label htmlFor={name} className="mb-2 block text-sm font-black">{label}</label><input id={name} name={name} type={type} placeholder={placeholder} className="w-full rounded-2xl border border-[#ded8ce] bg-white px-4 py-3 outline-none focus:border-[#171614]"/></div>; }
 function TextArea({ name, label, placeholder }: { name: string; label: string; placeholder?: string }) { return <div><label htmlFor={name} className="mb-2 block text-sm font-black">{label}</label><textarea id={name} name={name} rows={5} placeholder={placeholder} className="w-full resize-none rounded-2xl border border-[#ded8ce] bg-white px-4 py-3 outline-none focus:border-[#171614]"/></div>; }
