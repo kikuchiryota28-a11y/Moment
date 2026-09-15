@@ -1,10 +1,14 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BottomNavigation } from "@/components/layout/BottomNavigation";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import type { ThemePreference } from "@/types/database";
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-  return <><main className="mx-auto min-h-screen w-full max-w-3xl px-4 pb-28 sm:px-6">{children}</main><BottomNavigation /></>;
+  const { data: settings } = await supabase.from("user_settings").select("theme").eq("user_id", user.id).maybeSingle();
+  const theme = (settings?.theme ?? "system") as ThemePreference;
+  return <ThemeProvider initialTheme={theme}><main className="mx-auto min-h-screen w-full max-w-3xl px-4 pb-28 sm:px-6">{children}</main><BottomNavigation /></ThemeProvider>;
 }
