@@ -1,7 +1,44 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Journey, Moment } from "@/types/moment";
+import type { Journey, JourneyStatus, Moment } from "@/types/moment";
 
-const mapMoment = (m: any): Moment => ({
+type JourneyMediaRow = {
+  media_url: string;
+  sort_order: number;
+};
+
+type JourneyMomentRow = {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  why: string | null;
+  category: Moment["category"];
+  location_name: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  duration_minutes: number | null;
+  estimated_cost: number | null;
+  rating: number;
+  would_do_again: boolean;
+  created_at: string;
+  updated_at: string;
+  moment_media: JourneyMediaRow[] | null;
+};
+
+type JourneyRow = {
+  id: string;
+  user_id: string;
+  moment_id: string;
+  status: JourneyStatus;
+  planned_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  moments: JourneyMomentRow | null;
+};
+
+const mapMoment = (m: JourneyMomentRow): Moment => ({
   id: m.id,
   userId: m.user_id,
   title: m.title,
@@ -19,7 +56,7 @@ const mapMoment = (m: any): Moment => ({
   updatedAt: m.updated_at,
 });
 
-const allowedStatuses = new Set(["ALL", "PLANNED", "TRYING", "COMPLETED"]);
+const allowedStatuses = new Set<"ALL" | JourneyStatus>(["ALL", "PLANNED", "TRYING", "COMPLETED"]);
 
 export async function getMyJourneys(status?: string): Promise<Journey[]> {
   const supabase = await createClient();
@@ -27,7 +64,7 @@ export async function getMyJourneys(status?: string): Promise<Journey[]> {
   if (authError || !user) return [];
 
   const normalizedStatus = status?.toUpperCase() ?? "ALL";
-  if (!allowedStatuses.has(normalizedStatus)) return [];
+  if (!allowedStatuses.has(normalizedStatus as "ALL" | JourneyStatus)) return [];
 
   let query = supabase
     .from("journeys")
@@ -74,7 +111,7 @@ export async function getMyJourneys(status?: string): Promise<Journey[]> {
     return [];
   }
 
-  return (data ?? []).map((j: any): Journey => {
+  return ((data ?? []) as unknown as JourneyRow[]).map((j): Journey => {
     const media = Array.isArray(j.moments?.moment_media) ? j.moments.moment_media : [];
     const firstMedia = [...media].sort((a, b) => a.sort_order - b.sort_order)[0];
     return {
