@@ -7,6 +7,8 @@ import type { JourneyStatus } from "@/types/moment";
 
 const journeyStatuses = new Set<JourneyStatus>(["PLANNED", "TRYING", "COMPLETED"]);
 
+type TransitionStatus = "TRYING" | "COMPLETED";
+
 export async function tryMoment(
   momentId: string,
 ): Promise<ActionResult<{ status: JourneyStatus }>> {
@@ -77,20 +79,21 @@ export async function tryMoment(
 export async function startJourney(
   journeyId: string,
 ): Promise<ActionResult<{ status: "TRYING" }>> {
-  return transitionJourney(journeyId, "PLANNED", { status: "TRYING", started_at: new Date().toISOString() });
+  return transitionJourney(journeyId, "PLANNED", "TRYING", { status: "TRYING", started_at: new Date().toISOString() });
 }
 
 export async function completeJourney(
   journeyId: string,
 ): Promise<ActionResult<{ status: "COMPLETED" }>> {
-  return transitionJourney(journeyId, "TRYING", { status: "COMPLETED", completed_at: new Date().toISOString() });
+  return transitionJourney(journeyId, "TRYING", "COMPLETED", { status: "COMPLETED", completed_at: new Date().toISOString() });
 }
 
 async function transitionJourney(
   journeyId: string,
   expected: "PLANNED" | "TRYING",
+  nextStatus: TransitionStatus,
   patch: Record<string, string>,
-): Promise<ActionResult<{ status: "TRYING" | "COMPLETED" }>> {
+): Promise<ActionResult<{ status: TransitionStatus }>> {
   if (!journeyId || !/^[0-9a-f-]{36}$/i.test(journeyId)) {
     return { success: false, error: "Invalid Journey.", code: "INVALID_JOURNEY_ID" };
   }
@@ -112,7 +115,7 @@ async function transitionJourney(
     }
     if (!journey) return { success: false, error: "Journey not found.", code: "JOURNEY_NOT_FOUND" };
     if (journey.status !== expected) {
-      return { success: false, error: `Invalid transition: ${journey.status} → ${patch.status}.`, code: "INVALID_TRANSITION" };
+      return { success: false, error: `Invalid transition: ${journey.status} → ${nextStatus}.`, code: "INVALID_TRANSITION" };
     }
 
     const { error } = await supabase
@@ -128,7 +131,7 @@ async function transitionJourney(
 
     revalidatePath("/journey");
     revalidatePath(`/moment/${journey.moment_id}`);
-    return { success: true, data: { status: patch.status as "TRYING" | "COMPLETED" } };
+    return { success: true, data: { status: nextStatus } };
   } catch (error) {
     console.error("transitionJourney unexpected failure", error);
     return { success: false, error: "Journeyの更新に失敗しました。", code: "JOURNEY_UPDATE_FAILED" };
