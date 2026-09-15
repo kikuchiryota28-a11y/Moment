@@ -79,21 +79,27 @@ export async function tryMoment(
 export async function startJourney(
   journeyId: string,
 ): Promise<ActionResult<{ status: "TRYING" }>> {
-  return transitionJourney(journeyId, "PLANNED", "TRYING", { status: "TRYING", started_at: new Date().toISOString() });
+  return transitionJourney(journeyId, "PLANNED", "TRYING", {
+    status: "TRYING",
+    started_at: new Date().toISOString(),
+  });
 }
 
 export async function completeJourney(
   journeyId: string,
 ): Promise<ActionResult<{ status: "COMPLETED" }>> {
-  return transitionJourney(journeyId, "TRYING", "COMPLETED", { status: "COMPLETED", completed_at: new Date().toISOString() });
+  return transitionJourney(journeyId, "TRYING", "COMPLETED", {
+    status: "COMPLETED",
+    completed_at: new Date().toISOString(),
+  });
 }
 
-async function transitionJourney(
+async function transitionJourney<T extends TransitionStatus>(
   journeyId: string,
   expected: "PLANNED" | "TRYING",
-  nextStatus: TransitionStatus,
+  nextStatus: T,
   patch: Record<string, string>,
-): Promise<ActionResult<{ status: TransitionStatus }>> {
+): Promise<ActionResult<{ status: T }>> {
   if (!journeyId || !/^[0-9a-f-]{36}$/i.test(journeyId)) {
     return { success: false, error: "Invalid Journey.", code: "INVALID_JOURNEY_ID" };
   }
@@ -101,7 +107,9 @@ async function transitionJourney(
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return { success: false, error: "Authentication required.", code: "AUTH_REQUIRED" };
+    if (authError || !user) {
+      return { success: false, error: "Authentication required.", code: "AUTH_REQUIRED" };
+    }
 
     const { data: journey, error: journeyError } = await supabase
       .from("journeys")
@@ -115,7 +123,11 @@ async function transitionJourney(
     }
     if (!journey) return { success: false, error: "Journey not found.", code: "JOURNEY_NOT_FOUND" };
     if (journey.status !== expected) {
-      return { success: false, error: `Invalid transition: ${journey.status} → ${nextStatus}.`, code: "INVALID_TRANSITION" };
+      return {
+        success: false,
+        error: `Invalid transition: ${journey.status} → ${nextStatus}.`,
+        code: "INVALID_TRANSITION",
+      };
     }
 
     const { error } = await supabase
