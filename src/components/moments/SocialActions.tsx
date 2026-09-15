@@ -1,22 +1,70 @@
 "use client";
 
-import { useState } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { Heart, MessageCircle, Share2 } from "lucide-react";
-import { toggleLike, addComment } from "@/actions/social";
+import { setMomentLike, addComment } from "@/actions/social";
 
 export function SocialActions({ momentId, liked, likeCount }: { momentId: string; liked: boolean; likeCount: number }) {
-  const [isLiked, setIsLiked] = useState(liked);
-  const [count, setCount] = useState(likeCount);
+  const [baseLike, setBaseLike] = useState({ liked, count: likeCount });
+  const [optimisticLike, setOptimisticLike] = useOptimistic(baseLike, (_, next: { liked: boolean; count: number }) => next);
+  const [isPending, startTransition] = useTransition();
   const [comment, setComment] = useState("");
-  const [busy, setBusy] = useState(false);
-  async function like() { if (busy) return; setBusy(true); const r = await toggleLike(momentId); setBusy(false); if (r.ok) { setIsLiked(r.liked); setCount((n) => n + (r.liked ? 1 : -1)); } }
-  async function submitComment() { const r = await addComment(momentId, comment); if (r.ok) setComment(""); else window.alert(r.error); }
+  const [error, setError] = useState("");
+  const [commentPending, setCommentPending] = useState(false);
+
+  function handleLike() {
+    if (isPending) return;
+    const nextLiked = !optimisticLike.liked;
+    const next = { liked: nextLiked, count: Math.max(0, optimisticLike.count + (nextLiked ? 1 : -1)) };
+    setError("");
+
+    startTransition(async () => {
+      setOptimisticLike(next);
+      const result = await setMomentLike(momentId, nextLiked);
+      if (result.success) {
+        setBaseLike(next);
+        return;
+      }
+      setOptimisticLike(baseLike);
+      setError(result.error);
+    });
+  }
+
+  function submitComment() {
+    if (commentPending) return;
+    const body = comment.trim();
+    if (!body) return;
+    setCommentPending(true);
+    setError("");
+    void addComment(momentId, body).then((result) => {
+      setCommentPending(false);
+      if (result.success) {
+        setComment("");
+        return;
+      }
+      setError(result.error);
+    });
+  }
+
   return <div className="space-y-5">
     <div className="flex items-center gap-5 border-y border-[#ded8ce] py-4">
-      <button onClick={like} disabled={busy} className="flex items-center gap-2 text-sm font-bold"><Heart size={19} fill={isLiked ? "currentColor" : "none"}/>{count}</button>
+      <button
+        onClick={handleLike}
+        disabled={isPending}
+        aria-label={optimisticLike.liked ? "Unlike Moment" : "Like Moment"}
+        aria-pressed={optimisticLike.liked}
+        aria-busy={isPending}
+        className="flex min-h-11 items-center gap-2 text-sm font-bold disabled:cursor-default disabled:opacity-70"
+      >
+        <Heart size={19} fill={optimisticLike.liked ? "currentColor" : "none"}/>{optimisticLike.count}
+      </button>
       <span className="flex items-center gap-2 text-sm font-bold"><MessageCircle size={19}/> Comments</span>
-      <button onClick={() => navigator.share?.({ title: document.title, url: window.location.href })} className="ml-auto flex items-center gap-2 text-sm font-bold"><Share2 size={18}/> Share</button>
+      <button onClick={() => navigator.share?.({ title: document.title, url: window.location.href })} aria-label="Share Moment" className="ml-auto flex min-h-11 items-center gap-2 text-sm font-bold"><Share2 size={18}/> Share</button>
     </div>
-    <div className="flex gap-2"><input value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} placeholder="Add a thought…" className="min-w-0 flex-1 rounded-xl border border-[#ded8ce] bg-white px-4 py-3 text-sm outline-none focus:border-[#171614]"/><button onClick={submitComment} disabled={!comment.trim()} className="rounded-xl bg-[#171614] px-4 text-sm font-bold text-white disabled:opacity-40">Post</button></div>
+    {error && <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700">{error}</p>}
+    <div className="flex gap-2">
+      <input value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} placeholder="Add a thought…" aria-label="Comment" className="min-w-0 flex-1 rounded-xl border border-[#ded8ce] bg-white px-4 py-3 text-sm outline-none focus:border-[#171614]"/>
+      <button onClick={submitComment} disabled={!comment.trim() || commentPending} className="rounded-xl bg-[#171614] px-4 text-sm font-bold text-white disabled:opacity-40">{commentPending ? "Posting…" : "Post"}</button>
+    </div>
   </div>;
 }
