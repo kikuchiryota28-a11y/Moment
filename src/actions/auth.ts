@@ -11,11 +11,9 @@ export async function signUp(formData: FormData) {
   if (!email || password.length < 8 || !/^[a-z0-9_]{3,24}$/.test(username) || !displayName) return { ok: false as const, error: "Enter a valid username, display name, email, and password (8+ characters)." };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username, display_name: displayName } } });
   if (error || !data.user) return { ok: false as const, error: error?.message ?? "Could not create account." };
-
-  const { error: profileError } = await supabase.from("profiles").insert({ id: data.user.id, username, display_name: displayName });
-  if (profileError) return { ok: false as const, error: profileError.message };
+  if (!data.session) redirect("/login?message=Check%20your%20email%20to%20finish%20sign%20up");
   redirect("/");
 }
 
