@@ -16,6 +16,9 @@ export interface Profile {
   displayName: string;
   avatarUrl: string | null;
   bio: string | null;
+  websiteUrl?: string | null;
+  instagramUrl?: string | null;
+  xUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -38,56 +41,8 @@ export interface Moment {
   updatedAt: string;
 }
 
-export interface MomentMedia {
-  id: string;
-  momentId: string;
-  mediaUrl: string;
-  mediaType: MediaType;
-  sortOrder: number;
-}
-
-export interface Journey {
-  id: string;
-  userId: string;
-  momentId: string;
-  status: JourneyStatus;
-  plannedAt: string | null;
-  startedAt: string | null;
-  completedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  moment?: Moment;
-  mediaUrl?: string | null;
-}
-
-export interface Comment {
-  id: string;
-  userId: string;
-  momentId: string;
-  body: string;
-  createdAt: string;
-  updatedAt: string;
-  author?: Profile;
-}
-
-export interface UserStats {
-  momentCount: number;
-  experienceCount: number;
-  placeCount: number;
-}
-
-export interface MomentDetail {
-  moment: Moment;
-  author: Profile;
-  media: MomentMedia[];
-  social: {
-    likeCount: number;
-    commentCount: number;
-    isLiked: boolean;
-    isFollowingAuthor: boolean;
-  };
-  journey: {
-    status: JourneyStatus | null;
-  };
-  comments: Comment[];
-}
+export interface MomentMedia { id: string; momentId: string; mediaUrl: string; mediaType: MediaType; sortOrder: number; }
+export interface Journey { id: string; userId: string; momentId: string; status: JourneyStatus; plannedAt: string | null; startedAt: string | null; completedAt: string | null; createdAt: string; updatedAt: string; moment?: Moment; mediaUrl?: string | null; }
+export interface Comment { id: string; userId: string; momentId: string; body: string; createdAt: string; updatedAt: string; author?: Profile; }
+export interface UserStats { momentCount: number; experienceCount: number; placeCount: number; }
+export interface MomentDetail { moment: Moment; author: Profile; media: MomentMedia[]; social: { likeCount: number; commentCount: number; isLiked: boolean; isFollowingAuthor: boolean }; journey: { status: JourneyStatus | null }; comments: Comment[]; }
