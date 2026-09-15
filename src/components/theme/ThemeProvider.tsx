@@ -1,0 +1,33 @@
+"use client";
+
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import type { ThemePreference } from "@/types/database";
+
+interface ThemeContextValue { theme: ThemePreference; setTheme: (theme: ThemePreference) => void }
+const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+function applyTheme(theme: ThemePreference) {
+  const resolved = theme === "system" ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : theme;
+  document.documentElement.dataset.theme = resolved;
+  localStorage.setItem("moment-theme", theme);
+}
+
+export function ThemeProvider({ initialTheme, children }: { initialTheme: ThemePreference; children: React.ReactNode }) {
+  const [theme, setThemeState] = useState<ThemePreference>(initialTheme);
+  useEffect(() => { applyTheme(initialTheme); }, [initialTheme]);
+  useEffect(() => {
+    if (theme !== "system") return;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = () => applyTheme("system");
+    media.addEventListener("change", handler);
+    return () => media.removeEventListener("change", handler);
+  }, [theme]);
+  const value = useMemo(() => ({ theme, setTheme: (next: ThemePreference) => { setThemeState(next); applyTheme(next); } }), [theme]);
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
+export function useTheme() {
+  const value = useContext(ThemeContext);
+  if (!value) throw new Error("useTheme must be used within ThemeProvider");
+  return value;
+}
