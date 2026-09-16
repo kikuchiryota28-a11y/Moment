@@ -12,7 +12,7 @@ export default async function MomentDetailPage({ params }: { params: Promise<{ i
   const data = await getMomentDetail(id);
   if (!data) notFound();
   const { moment, author, media, social, journey, comments, isOwner } = data;
-  const completeness = [
+  const completeness: Array<[string, boolean]> = [
     ["Story", Boolean(moment.description)], ["Cover", media.length > 0], ["Category", Boolean(moment.category)],
     ["Location", Boolean(moment.locationName)], ["Cost", moment.estimatedCost !== null], ["Time", moment.durationMinutes !== null],
     ["Why", Boolean(moment.why)], ["Experience", Boolean(moment.experienceNote)],
