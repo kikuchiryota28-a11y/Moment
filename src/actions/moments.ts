@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { validateMomentInput, type CreateMomentInput, type UpdateMomentInput } from "@/lib/validation/moments";
 import type { ActionResult } from "@/types/action";
@@ -15,6 +15,26 @@ function validateOwnedMediaUrls(media: CreateMomentInput["media"], userId: strin
 }
 function ownedMediaPaths(media: CreateMomentInput["media"], userId: string): string[] {
   return media.map((item) => storagePathFromPublicUrl(item.url, "moment-media")).filter((path): path is string => Boolean(path && path.startsWith(`${userId}/`)));
+}
+
+export async function surpriseMe(): Promise<never> {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) redirect("/login");
+
+  const [{ data: journeys }, { data: moments, error }] = await Promise.all([
+    supabase.from("journeys").select("moment_id").eq("user_id", user.id).not("moment_id", "is", null),
+    supabase.from("moments").select("id").neq("user_id", user.id).limit(100),
+  ]);
+  if (error) throw error;
+
+  const tried = new Set((journeys ?? []).map((journey) => journey.moment_id).filter((id): id is string => Boolean(id)));
+  const candidates = (moments ?? []).map((moment) => moment.id).filter((id) => !tried.has(id));
+  const pool = candidates.length ? candidates : (moments ?? []).map((moment) => moment.id);
+  if (!pool.length) redirect("/?surprise=empty");
+
+  const selected = pool[Math.floor(Math.random() * pool.length)];
+  redirect(`/moment/${selected}?from=surprise`);
 }
 
 export async function createMoment(input: CreateMomentInput): Promise<ActionResult<{ id: string }>> {
