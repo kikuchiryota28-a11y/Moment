@@ -20,7 +20,7 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["moments"]["Row"]>;
       };
       journeys: {
-        Row: { id: string; user_id: string; moment_id: string | null; moment_title_snapshot: string | null; moment_category_snapshot: string | null; moment_media_url_snapshot: string | null; status: "PLANNED" | "TRYING" | "COMPLETED"; planned_at: string | null; started_at: string | null; completed_at: string | null; created_at: string; updated_at: string };
+        Row: { id: string; user_id: string; moment_id: string | null; moment_title_snapshot: string | null; moment_category_snapshot: string | null; moment_media_url_snapshot: string | null; status: "PLANNED" | "TRYING" | "COMPLETED"; planned_at: string | null; started_at: string | null; completed_at: string | null; experience_note: string | null; experience_media_url: string | null; experience_location_name: string | null; experience_recorded_at: string | null; created_at: string; updated_at: string };
         Insert: Partial<Database["public"]["Tables"]["journeys"]["Row"]> & Pick<Database["public"]["Tables"]["journeys"]["Row"], "user_id" | "moment_id">;
         Update: Partial<Database["public"]["Tables"]["journeys"]["Row"]>;
       };
@@ -29,7 +29,10 @@ export interface Database {
       comments: { Row: { id: string; user_id: string; moment_id: string; body: string; created_at: string; updated_at: string }; Insert: Partial<Database["public"]["Tables"]["comments"]["Row"]> & Pick<Database["public"]["Tables"]["comments"]["Row"], "user_id" | "moment_id" | "body">; Update: Partial<Database["public"]["Tables"]["comments"]["Row"]> };
       follows: { Row: { follower_id: string; following_id: string; created_at: string }; Insert: { follower_id: string; following_id: string; created_at?: string }; Update: Partial<Database["public"]["Tables"]["follows"]["Row"]> };
     };
-    Functions: { delete_my_account: { Args: Record<string, never>; Returns: undefined } };
+    Functions: {
+      delete_my_account: { Args: Record<string, never>; Returns: undefined };
+      get_user_experience_stats: { Args: { target_user_id: string }; Returns: { experience_count: number; place_count: number }[] };
+    };
   };
 }
 
