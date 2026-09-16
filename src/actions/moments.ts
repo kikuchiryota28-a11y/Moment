@@ -38,14 +38,9 @@ export async function createMoment(input: CreateMomentInput): Promise<ActionResu
       if (cleanupError) console.error("createMoment media rollback cleanup failed", cleanupError);
       return { success: false, error: "画像情報の保存に失敗しました。", code: "MEDIA_INSERT_FAILED" };
     }
-    revalidatePath("/");
-    revalidatePath(`/profile/${profile.username}`);
-    revalidatePath(`/moment/${moment.id}`);
+    revalidatePath("/"); revalidatePath(`/profile/${profile.username}`); revalidatePath(`/moment/${moment.id}`);
     return { success: true, data: { id: moment.id } };
-  } catch (error) {
-    console.error("createMoment unexpected failure", error);
-    return { success: false, error: "Momentの公開に失敗しました。", code: "MOMENT_CREATE_FAILED" };
-  }
+  } catch (error) { console.error("createMoment unexpected failure", error); return { success: false, error: "Momentの公開に失敗しました。", code: "MOMENT_CREATE_FAILED" }; }
 }
 
 export async function updateMoment(input: UpdateMomentInput): Promise<ActionResult<{ id: string }>> {
@@ -58,33 +53,26 @@ export async function updateMoment(input: UpdateMomentInput): Promise<ActionResu
     if (authError || !user) return { success: false, error: "Authentication required.", code: "AUTH_REQUIRED" };
     if (!validateOwnedMediaUrls(input.media, user.id)) return { success: false, error: "One or more media files are invalid.", code: "INVALID_MEDIA_OWNERSHIP" };
     const { data: current, error: currentError } = await supabase.from("moments").select("id,user_id").eq("id", input.momentId).maybeSingle();
-    if (currentError) { console.error("updateMoment lookup failed", currentError); return { success: false, error: "Moment could not be loaded.", code: "MOMENT_LOOKUP_FAILED" }; }
+    if (currentError) return { success: false, error: "Moment could not be loaded.", code: "MOMENT_LOOKUP_FAILED" };
     if (!current) return { success: false, error: "Moment not found.", code: "MOMENT_NOT_FOUND" };
     if (current.user_id !== user.id) return { success: false, error: "You can only edit your own Moment.", code: "FORBIDDEN" };
     const { error: updateError } = await supabase.from("moments").update({ title: input.title.trim(), description: input.description.trim(), why: input.why?.trim() || null, category: input.category, location_name: input.location?.trim() || null, duration_minutes: input.durationMinutes ?? null, estimated_cost: input.estimatedCost ?? null, experience_note: input.experienceNote?.trim() || null, rating: input.rating, would_do_again: input.wouldDoAgain }).eq("id", input.momentId).eq("user_id", user.id);
-    if (updateError) { console.error("updateMoment update failed", updateError); return { success: false, error: "Moment could not be saved.", code: "MOMENT_UPDATE_FAILED" }; }
+    if (updateError) return { success: false, error: "Moment could not be saved.", code: "MOMENT_UPDATE_FAILED" };
     const { data: oldMedia, error: oldMediaError } = await supabase.from("moment_media").select("media_url").eq("moment_id", input.momentId);
-    if (oldMediaError) { console.error("updateMoment media lookup failed", oldMediaError); return { success: false, error: "Moment media could not be updated.", code: "MEDIA_LOOKUP_FAILED" }; }
+    if (oldMediaError) return { success: false, error: "Moment media could not be updated.", code: "MEDIA_LOOKUP_FAILED" };
     const keep = new Set(input.media.map((item) => item.url));
     const removedPaths = ((oldMedia ?? []) as Array<{ media_url: string }>).filter((item) => !keep.has(item.media_url)).map((item) => storagePathFromPublicUrl(item.media_url, "moment-media")).filter((path): path is string => Boolean(path && path.startsWith(`${user.id}/`)));
     const quotedUrls = input.media.map((item) => `"${item.url.replaceAll('"', '""')}"`).join(",");
     const { error: deleteMediaError } = await supabase.from("moment_media").delete().eq("moment_id", input.momentId).not("media_url", "in", `(${quotedUrls})`);
-    if (deleteMediaError) { console.error("updateMoment media delete failed", deleteMediaError); return { success: false, error: "Moment media could not be updated.", code: "MEDIA_UPDATE_FAILED" }; }
+    if (deleteMediaError) return { success: false, error: "Moment media could not be updated.", code: "MEDIA_UPDATE_FAILED" };
     const { data: remaining } = await supabase.from("moment_media").select("media_url").eq("moment_id", input.momentId);
     const existingUrls = new Set(((remaining ?? []) as Array<{ media_url: string }>).map((item) => item.media_url));
     const newRows = input.media.filter((item) => !existingUrls.has(item.url)).map((item, index) => ({ moment_id: input.momentId, media_url: item.url, media_type: item.type ?? "image", sort_order: index }));
-    if (newRows.length) {
-      const { error: insertMediaError } = await supabase.from("moment_media").insert(newRows);
-      if (insertMediaError) { console.error("updateMoment media insert failed", insertMediaError); return { success: false, error: "Moment media could not be updated.", code: "MEDIA_UPDATE_FAILED" }; }
-    }
-    if (removedPaths.length) { const { error: storageError } = await supabase.storage.from("moment-media").remove(removedPaths); if (storageError) console.error("updateMoment old media cleanup failed", storageError); }
-    revalidatePath("/");
-    revalidatePath(`/moment/${input.momentId}`);
+    if (newRows.length) { const { error: insertMediaError } = await supabase.from("moment_media").insert(newRows); if (insertMediaError) return { success: false, error: "Moment media could not be updated.", code: "MEDIA_UPDATE_FAILED" }; }
+    if (removedPaths.length) await supabase.storage.from("moment-media").remove(removedPaths);
+    revalidatePath("/"); revalidatePath(`/moment/${input.momentId}`);
     return { success: true, data: { id: input.momentId } };
-  } catch (error) {
-    console.error("updateMoment unexpected failure", error);
-    return { success: false, error: "Moment could not be saved.", code: "MOMENT_UPDATE_FAILED" };
-  }
+  } catch (error) { console.error("updateMoment unexpected failure", error); return { success: false, error: "Moment could not be saved.", code: "MOMENT_UPDATE_FAILED" }; }
 }
 
 export async function deleteMoment(momentId: string): Promise<ActionResult<undefined>> {
@@ -95,16 +83,37 @@ export async function deleteMoment(momentId: string): Promise<ActionResult<undef
     if (authError || !user) return { success: false, error: "Authentication required.", code: "AUTH_REQUIRED" };
     const [{ data: moment, error: momentError }, { data: media, error: mediaError }] = await Promise.all([supabase.from("moments").select("id,user_id").eq("id", momentId).maybeSingle(), supabase.from("moment_media").select("media_url").eq("moment_id", momentId)]);
     if (momentError || !moment) return { success: false, error: "Moment not found.", code: "MOMENT_NOT_FOUND" };
-    if (mediaError) { console.error("deleteMoment media lookup failed", mediaError); return { success: false, error: "Moment media could not be loaded.", code: "MEDIA_LOOKUP_FAILED" }; }
+    if (mediaError) return { success: false, error: "Moment media could not be loaded.", code: "MEDIA_LOOKUP_FAILED" };
     if (moment.user_id !== user.id) return { success: false, error: "You can only delete your own Moment.", code: "FORBIDDEN" };
     const { error: deleteError } = await supabase.from("moments").delete().eq("id", momentId).eq("user_id", user.id);
-    if (deleteError) { console.error("deleteMoment delete failed", deleteError); return { success: false, error: "Moment could not be deleted.", code: "MOMENT_DELETE_FAILED" }; }
+    if (deleteError) return { success: false, error: "Moment could not be deleted.", code: "MOMENT_DELETE_FAILED" };
     const paths = ((media ?? []) as Array<{ media_url: string }>).map((item) => storagePathFromPublicUrl(item.media_url, "moment-media")).filter((path): path is string => Boolean(path && path.startsWith(`${user.id}/`)));
-    if (paths.length) { const { error: storageError } = await supabase.storage.from("moment-media").remove(paths); if (storageError) console.error("deleteMoment storage cleanup failed", storageError); }
+    if (paths.length) await supabase.storage.from("moment-media").remove(paths);
     revalidatePath("/"); revalidatePath("/journey"); revalidatePath("/profile/me"); revalidatePath(`/moment/${momentId}`);
     return { success: true, data: undefined };
+  } catch (error) { console.error("deleteMoment unexpected failure", error); return { success: false, error: "Moment could not be deleted.", code: "MOMENT_DELETE_FAILED" }; }
+}
+
+export async function getSurpriseMoment(): Promise<ActionResult<{ id: string }>> {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { success: false, error: "Authentication required.", code: "AUTH_REQUIRED" };
+
+    const [{ data: moments, error: momentsError }, { data: journeys, error: journeysError }] = await Promise.all([
+      supabase.from("moments").select("id,user_id").neq("user_id", user.id).order("created_at", { ascending: false }).limit(60),
+      supabase.from("journeys").select("moment_id").eq("user_id", user.id),
+    ]);
+    if (momentsError || journeysError) return { success: false, error: "Surpriseを準備できませんでした。", code: "SURPRISE_LOOKUP_FAILED" };
+
+    const tried = new Set((journeys ?? []).map((row) => row.moment_id));
+    const unseen = (moments ?? []).filter((moment) => !tried.has(moment.id));
+    const pool = unseen.length ? unseen : (moments ?? []);
+    if (!pool.length) return { success: false, error: "まだDiscoverできるMomentがありません。", code: "NO_SURPRISE_AVAILABLE" };
+    const picked = pool[Math.floor(Math.random() * pool.length)];
+    return { success: true, data: { id: picked.id } };
   } catch (error) {
-    console.error("deleteMoment unexpected failure", error);
-    return { success: false, error: "Moment could not be deleted.", code: "MOMENT_DELETE_FAILED" };
+    console.error("getSurpriseMoment unexpected failure", error);
+    return { success: false, error: "Surpriseを準備できませんでした。", code: "SURPRISE_FAILED" };
   }
 }
