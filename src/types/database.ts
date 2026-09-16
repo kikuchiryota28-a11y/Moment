@@ -22,9 +22,13 @@ export interface Database {
       journeys: {
         Row: { id: string; user_id: string; moment_id: string | null; moment_title_snapshot: string | null; moment_category_snapshot: string | null; moment_media_url_snapshot: string | null; status: "PLANNED" | "TRYING" | "COMPLETED"; planned_at: string | null; started_at: string | null; completed_at: string | null; experience_note: string | null; experience_media_url: string | null; experience_location_name: string | null; experience_recorded_at: string | null; created_at: string; updated_at: string };
         Insert: Partial<Database["public"]["Tables"]["journeys"]["Row"]> & Pick<Database["public"]["Tables"]["journeys"]["Row"], "user_id" | "moment_id">;
-        Update: Partial<Database["public"]["Tables"]["Row"]>;
+        Update: Partial<Database["public"]["Tables"]["journeys"]["Row"]>;
       };
-      moment_media: { Row: { id: string; moment_id: string; media_url: string; media_type: "image" | "video"; sort_order: number; created_at: string }; Insert: Partial<Database["public"]["Tables"]["Row"]> & Pick<Database["public"]["Tables"]["moment_media"]["Row"], "moment_id" | "media_url">; Update: Partial<Database["public"]["Tables"]["moment_media"]["Row"]> };
+      moment_media: {
+        Row: { id: string; moment_id: string; media_url: string; media_type: "image" | "video"; sort_order: number; created_at: string };
+        Insert: Partial<Database["public"]["Tables"]["moment_media"]["Row"]> & Pick<Database["public"]["Tables"]["moment_media"]["Row"], "moment_id" | "media_url">;
+        Update: Partial<Database["public"]["Tables"]["moment_media"]["Row"]>;
+      };
       likes: { Row: { user_id: string; moment_id: string; created_at: string }; Insert: { user_id: string; moment_id: string; created_at?: string }; Update: Partial<Database["public"]["Tables"]["likes"]["Row"]> };
       comments: { Row: { id: string; user_id: string; moment_id: string; body: string; created_at: string; updated_at: string }; Insert: Partial<Database["public"]["Tables"]["comments"]["Row"]> & Pick<Database["public"]["Tables"]["comments"]["Row"], "user_id" | "moment_id" | "body">; Update: Partial<Database["public"]["Tables"]["comments"]["Row"]> };
       follows: { Row: { follower_id: string; following_id: string; created_at: string }; Insert: { follower_id: string; following_id: string; created_at?: string }; Update: Partial<Database["public"]["Tables"]["follows"]["Row"]> };
