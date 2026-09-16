@@ -30,10 +30,7 @@ export async function getMoments(category?: string) {
 
 export async function getMomentEditor(id: string): Promise<{ moment: Moment; media: MomentMedia[] } | null> {
   const supabase = await createClient();
-  const [{ data: { user }, error: authError }, { data: row, error: momentError }] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase.from("moments").select(MOMENT_COLUMNS).eq("id", id).maybeSingle(),
-  ]);
+  const [{ data: { user }, error: authError }, { data: row, error: momentError }] = await Promise.all([supabase.auth.getUser(), supabase.from("moments").select(MOMENT_COLUMNS).eq("id", id).maybeSingle()]);
   if (authError || !user || momentError || !row) return null;
   const moment = row as unknown as MomentRow;
   if (moment.user_id !== user.id) return null;
@@ -44,10 +41,7 @@ export async function getMomentEditor(id: string): Promise<{ moment: Moment; med
 
 export async function getMomentDetail(id: string): Promise<MomentDetail | null> {
   const supabase = await createClient();
-  const [momentResult, authResult] = await Promise.all([
-    supabase.from("moments").select(`${MOMENT_COLUMNS}, profiles!moments_user_id_fkey(${PROFILE_COLUMNS})`).eq("id", id).maybeSingle(),
-    supabase.auth.getUser(),
-  ]);
+  const [momentResult, authResult] = await Promise.all([supabase.from("moments").select(`${MOMENT_COLUMNS}, profiles!moments_user_id_fkey(${PROFILE_COLUMNS})`).eq("id", id).maybeSingle(), supabase.auth.getUser()]);
   if (momentResult.error) throw momentResult.error;
   if (!momentResult.data) return null;
   const m = momentResult.data as unknown as MomentWithProfile;
@@ -67,5 +61,5 @@ export async function getMomentDetail(id: string): Promise<MomentDetail | null> 
   if (likeResult.error) throw likeResult.error;
   if (followResult.error) throw followResult.error;
   const comments = (commentsResult.data ?? []) as unknown as CommentRow[];
-  return { moment: mapMoment(m), author: mapProfile(m.profiles), media: ((mediaResult.data ?? []) as unknown as MediaRow[]).map(mapMedia), social: { likeCount: likeCountResult.count ?? 0, commentCount: commentCountResult.count ?? 0, isLiked: Boolean(likeResult.data), isFollowingAuthor: Boolean(followResult.data) }, journey: { status: (journeyResult.data?.status as MomentDetail["journey"]["status"]) ?? null }, comments: comments.map((c): Comment => ({ id: c.id, userId: c.user_id, momentId: c.moment_id, body: c.body, createdAt: c.created_at, updatedAt: c.updated_at, author: c.profiles ? mapProfile(c.profiles) : undefined })) };
+  return { moment: mapMoment(m), author: mapProfile(m.profiles), isOwner: user?.id === m.user_id, media: ((mediaResult.data ?? []) as unknown as MediaRow[]).map(mapMedia), social: { likeCount: likeCountResult.count ?? 0, commentCount: commentCountResult.count ?? 0, isLiked: Boolean(likeResult.data), isFollowingAuthor: Boolean(followResult.data) }, journey: { status: (journeyResult.data?.status as MomentDetail["journey"]["status"]) ?? null }, comments: comments.map((c): Comment => ({ id: c.id, userId: c.user_id, momentId: c.moment_id, body: c.body, createdAt: c.created_at, updatedAt: c.updated_at, author: c.profiles ? mapProfile(c.profiles) : undefined })) };
 }
