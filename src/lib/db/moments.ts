@@ -25,16 +25,27 @@ export async function getMoments(category?: string) {
   if (category && category !== "all") query = query.eq("category", category);
   const { data, error } = await query;
   if (error) throw error;
-
   const rows = (data ?? []) as unknown as MomentWithProfile[];
   const ids = rows.map((m) => m.id);
-  const { data: media, error: mediaError } = ids.length
-    ? await supabase.from("moment_media").select("id,moment_id,media_url,media_type,sort_order").in("moment_id", ids).order("sort_order")
-    : { data: [], error: null };
+  const { data: media, error: mediaError } = ids.length ? await supabase.from("moment_media").select("id,moment_id,media_url,media_type,sort_order").in("moment_id", ids).order("sort_order") : { data: [], error: null };
   if (mediaError) throw mediaError;
   const mediaMap = new Map<string, MediaRow>();
   for (const item of (media ?? []) as unknown as MediaRow[]) if (!mediaMap.has(item.moment_id)) mediaMap.set(item.moment_id, item);
   return rows.map((m) => ({ moment: mapMoment(m), author: mapProfile(m.profiles), mediaUrl: mediaMap.get(m.id)?.media_url ?? null }));
+}
+
+export async function getMomentEditor(id: string): Promise<{ moment: Moment; media: MomentMedia } | { moment: Moment; media: MomentMedia[] } | null> {
+  const supabase = await createClient();
+  const [{ data: { user }, error: authError }, { data: row, error: momentError }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from("moments").select(MOMENT_COLUMNS).eq("id", id).maybeSingle(),
+  ]);
+  if (authError || !user || momentError || !row) return null;
+  const moment = row as unknown as MomentRow;
+  if (moment.user_id !== user.id) return null;
+  const { data: media, error: mediaError } = await supabase.from("moment_media").select("id,moment_id,media_url,media_type,sort_order").eq("moment_id", id).order("sort_order");
+  if (mediaError) return null;
+  return { moment: mapMoment(moment), media: ((media ?? []) as unknown as MediaRow[]).map(mapMedia) };
 }
 
 export async function getMomentDetail(id: string): Promise<MomentDetail | null> {
@@ -45,7 +56,6 @@ export async function getMomentDetail(id: string): Promise<MomentDetail | null> 
   ]);
   if (momentResult.error) throw momentResult.error;
   if (!momentResult.data) return null;
-
   const m = momentResult.data as unknown as MomentWithProfile;
   const user = authResult.data.user;
   const [mediaResult, likeCountResult, commentCountResult, commentsResult, journeyResult, likeResult, followResult] = await Promise.all([
@@ -57,18 +67,14 @@ export async function getMomentDetail(id: string): Promise<MomentDetail | null> 
     user ? supabase.from("likes").select("user_id").eq("moment_id", id).eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null, error: null }),
     user && user.id !== m.user_id ? supabase.from("follows").select("follower_id").eq("follower_id", user.id).eq("following_id", m.user_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
   ]);
-
   if (mediaResult.error) throw mediaResult.error;
   if (commentsResult.error) throw commentsResult.error;
   if (journeyResult.error) throw journeyResult.error;
   if (likeResult.error) throw likeResult.error;
   if (followResult.error) throw followResult.error;
-
   const comments = (commentsResult.data ?? []) as unknown as CommentRow[];
   return {
-    moment: mapMoment(m),
-    author: mapProfile(m.profiles),
-    media: ((mediaResult.data ?? []) as unknown as MediaRow[]).map(mapMedia),
+    moment: mapMoment(m), author: mapProfile(m.profiles), media: ((mediaResult.data ?? []) as unknown as MediaRow[]).map(mapMedia),
     social: { likeCount: likeCountResult.count ?? 0, commentCount: commentCountResult.count ?? 0, isLiked: Boolean(likeResult.data), isFollowingAuthor: Boolean(followResult.data) },
     journey: { status: (journeyResult.data?.status as MomentDetail["journey"]["status"]) ?? null },
     comments: comments.map((c): Comment => ({ id: c.id, userId: c.user_id, momentId: c.moment_id, body: c.body, createdAt: c.created_at, updatedAt: c.updated_at, author: c.profiles ? mapProfile(c.profiles) : undefined })),
