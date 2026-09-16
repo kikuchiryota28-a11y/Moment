@@ -40,14 +40,16 @@ export async function tryMoment(momentId: string): Promise<ActionResult<{ status
     }
 
     const { data: cover } = await supabase.from("moment_media").select("media_url").eq("moment_id", momentId).order("sort_order").limit(1).maybeSingle();
+    const now = new Date().toISOString();
     const { data, error } = await supabase.from("journeys").insert({
       user_id: user.id,
       moment_id: momentId,
       moment_title_snapshot: moment.title,
       moment_category_snapshot: moment.category,
       moment_media_url_snapshot: cover?.media_url ?? null,
-      status: "PLANNED",
+      status: "TRYING",
       planned_at: null,
+      started_at: now,
     }).select("status").single();
     if (error || !data) return { success: false, error: "Journeyへの追加に失敗しました。", code: "JOURNEY_INSERT_FAILED" };
 
