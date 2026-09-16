@@ -6,7 +6,6 @@ type MomentRow = { id: string; user_id: string; title: string; description: stri
 type MediaRow = { id: string; moment_id: string; media_url: string; media_type: "image" | "video"; sort_order: number };
 type CommentRow = { id: string; user_id: string; moment_id: string; body: string; created_at: string; updated_at: string; profiles: ProfileRow | null };
 type MomentWithProfile = MomentRow & { profiles: ProfileRow };
-
 const MOMENT_COLUMNS = "id,user_id,title,description,why,category,location_name,latitude,longitude,duration_minutes,estimated_cost,experience_note,rating,would_do_again,created_at,updated_at";
 const PROFILE_COLUMNS = "id,username,display_name,avatar_url,bio,website_url,instagram_url,x_url,created_at,updated_at";
 const mapProfile = (p: ProfileRow): Profile => ({ id: p.id, username: p.username, displayName: p.display_name, avatarUrl: p.avatar_url, bio: p.bio, websiteUrl: p.website_url, instagramUrl: p.instagram_url, xUrl: p.x_url, createdAt: p.created_at, updatedAt: p.updated_at });
@@ -46,7 +45,7 @@ export async function getMomentDetail(id: string): Promise<MomentDetail | null> 
   if (!momentResult.data) return null;
   const m = momentResult.data as unknown as MomentWithProfile;
   const user = authResult.data.user;
-  const [mediaResult, likeCountResult, commentCountResult, commentsResult, journeyResult, likeResult, followResult] = await Promise.all([
+  const [mediaResult, likeCountResult, commentCountResult, commentsResult, journeyResult, likeResult, followResult, experienceCountResult] = await Promise.all([
     supabase.from("moment_media").select("id,moment_id,media_url,media_type,sort_order").eq("moment_id", id).order("sort_order"),
     supabase.from("likes").select("user_id", { count: "exact", head: true }).eq("moment_id", id),
     supabase.from("comments").select("id", { count: "exact", head: true }).eq("moment_id", id),
@@ -54,12 +53,14 @@ export async function getMomentDetail(id: string): Promise<MomentDetail | null> 
     user ? supabase.from("journeys").select("status").eq("moment_id", id).eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null, error: null }),
     user ? supabase.from("likes").select("user_id").eq("moment_id", id).eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null, error: null }),
     user && user.id !== m.user_id ? supabase.from("follows").select("follower_id").eq("follower_id", user.id).eq("following_id", m.user_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    supabase.rpc("get_moment_experience_count", { target_moment_id: id }),
   ]);
   if (mediaResult.error) throw mediaResult.error;
   if (commentsResult.error) throw commentsResult.error;
   if (journeyResult.error) throw journeyResult.error;
   if (likeResult.error) throw likeResult.error;
   if (followResult.error) throw followResult.error;
+  if (experienceCountResult.error) console.error("experience count lookup failed", experienceCountResult.error);
   const comments = (commentsResult.data ?? []) as unknown as CommentRow[];
-  return { moment: mapMoment(m), author: mapProfile(m.profiles), isOwner: user?.id === m.user_id, media: ((mediaResult.data ?? []) as unknown as MediaRow[]).map(mapMedia), social: { likeCount: likeCountResult.count ?? 0, commentCount: commentCountResult.count ?? 0, isLiked: Boolean(likeResult.data), isFollowingAuthor: Boolean(followResult.data) }, journey: { status: (journeyResult.data?.status as MomentDetail["journey"]["status"]) ?? null }, comments: comments.map((c): Comment => ({ id: c.id, userId: c.user_id, momentId: c.moment_id, body: c.body, createdAt: c.created_at, updatedAt: c.updated_at, author: c.profiles ? mapProfile(c.profiles) : undefined })) };
+  return { moment: mapMoment(m), author: mapProfile(m.profiles), isOwner: user?.id === m.user_id, media: ((mediaResult.data ?? []) as unknown as MediaRow[]).map(mapMedia), social: { likeCount: likeCountResult.count ?? 0, commentCount: commentCountResult.count ?? 0, isLiked: Boolean(likeResult.data), isFollowingAuthor: Boolean(followResult.data) }, journey: { status: (journeyResult.data?.status as MomentDetail["journey"]["status"]) ?? null }, experienceCount: Number(experienceCountResult.data ?? 0), comments: comments.map((c): Comment => ({ id: c.id, userId: c.user_id, momentId: c.moment_id, body: c.body, createdAt: c.created_at, updatedAt: c.updated_at, author: c.profiles ? mapProfile(c.profiles) : undefined })) };
 }
