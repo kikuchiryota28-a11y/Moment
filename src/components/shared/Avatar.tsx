@@ -16,6 +16,34 @@ export function Avatar({ src, name, size = 40, priority = false, className = "" 
   }, [src]);
   useEffect(() => setFailed(false), [safeSrc]);
   const initials = name.trim().slice(0, 1).toUpperCase() || "?";
-  if (!safeSrc || failed) return <div aria-label={name} className={`flex shrink-0 items-center justify-center rounded-full bg-[#171614] font-black text-white ${className}`} style={{ width: size, height: size, fontSize: Math.max(12, Math.round(size * 0.38)) }}>{initials}</div>;
-  return <Image src={safeSrc} alt={name} width={size} height={size} priority={priority} sizes={`${size}px`} onError={() => setFailed(true)} className={`shrink-0 rounded-full object-cover ${className}`} />;
+  const dimension = `${size}px`;
+
+  if (!safeSrc || failed) {
+    return (
+      <div
+        aria-label={name}
+        className={`aspect-square min-w-0 shrink-0 overflow-hidden rounded-full flex items-center justify-center bg-[#171614] font-black text-white ${className}`}
+        style={{ width: dimension, height: dimension, minWidth: dimension, minHeight: dimension, maxWidth: dimension, maxHeight: dimension, fontSize: Math.max(12, Math.round(size * 0.38)) }}
+      >
+        {initials}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`relative aspect-square min-w-0 shrink-0 overflow-hidden rounded-full ${className}`}
+      style={{ width: dimension, height: dimension, minWidth: dimension, minHeight: dimension, maxWidth: dimension, maxHeight: dimension }}
+    >
+      <Image
+        src={safeSrc}
+        alt={name}
+        fill
+        priority={priority}
+        sizes={`${size}px`}
+        onError={() => setFailed(true)}
+        className="h-full w-full min-h-full min-w-full shrink-0 aspect-square rounded-full object-cover"
+      />
+    </div>
+  );
 }
