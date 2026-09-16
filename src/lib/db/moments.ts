@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Comment, Moment, MomentDetail, MomentMedia, Profile } from "@/types/moment";
+import type { Comment, JourneyStatus, Moment, MomentDetail, MomentMedia, Profile } from "@/types/moment";
 import type { ProfileRow } from "@/types/database";
 
 type MomentRow = { id: string; user_id: string; title: string; description: string; why: string | null; category: string; location_name: string | null; latitude: number | null; longitude: number | null; duration_minutes: number | null; estimated_cost: number | null; experience_note: string | null; rating: number; would_do_again: boolean; created_at: string; updated_at: string };
@@ -15,17 +15,28 @@ const mapMedia = (m: MediaRow): MomentMedia => ({ id: m.id, momentId: m.moment_i
 
 export async function getMoments(category?: string) {
   const supabase = await createClient();
-  let query = supabase.from("moments").select(`${MOMENT_COLUMNS}, profiles!moments_user_id_fkey(${PROFILE_COLUMNS})`).order("created_at", { ascending: false }).limit(30);
-  if (category && category !== "all") query = query.eq("category", category);
-  const { data, error } = await query;
-  if (error) throw error;
-  const rows = (data ?? []) as unknown as MomentWithProfile[];
+  const [{ data: { user } }, momentResult] = await Promise.all([
+    supabase.auth.getUser(),
+    (async () => {
+      let query = supabase.from("moments").select(`${MOMENT_COLUMNS}, profiles!moments_user_id_fkey(${PROFILE_COLUMNS})`).order("created_at", { ascending: false }).limit(30);
+      if (category && category !== "all") query = query.eq("category", category);
+      return query;
+    })(),
+  ]);
+  if (momentResult.error) throw momentResult.error;
+  const rows = (momentResult.data ?? []) as unknown as MomentWithProfile[];
   const ids = rows.map((m) => m.id);
-  const { data: media, error: mediaError } = ids.length ? await supabase.from("moment_media").select("id,moment_id,media_url,media_type,sort_order").in("moment_id", ids).order("sort_order") : { data: [], error: null };
-  if (mediaError) throw mediaError;
+  const [mediaResult, journeyResult] = await Promise.all([
+    ids.length ? supabase.from("moment_media").select("id,moment_id,media_url,media_type,sort_order").in("moment_id", ids).order("sort_order") : Promise.resolve({ data: [], error: null }),
+    user && ids.length ? supabase.from("journeys").select("moment_id,status").eq("user_id", user.id).in("moment_id", ids) : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (mediaResult.error) throw mediaResult.error;
+  if (journeyResult.error) throw journeyResult.error;
   const mediaMap = new Map<string, MediaRow>();
-  for (const item of (media ?? []) as unknown as MediaRow[]) if (!mediaMap.has(item.moment_id)) mediaMap.set(item.moment_id, item);
-  return rows.map((m) => ({ moment: mapMoment(m), author: mapProfile(m.profiles), mediaUrl: mediaMap.get(m.id)?.media_url ?? null }));
+  for (const item of (mediaResult.data ?? []) as unknown as MediaRow[]) if (!mediaMap.has(item.moment_id)) mediaMap.set(item.moment_id, item);
+  const journeyMap = new Map<string, JourneyStatus>();
+  for (const item of (journeyResult.data ?? []) as Array<{ moment_id: string; status: JourneyStatus }>) journeyMap.set(item.moment_id, item.status);
+  return rows.filter((m) => !user || m.user_id !== user.id).map((m) => ({ moment: mapMoment(m), author: mapProfile(m.profiles), mediaUrl: mediaMap.get(m.id)?.media_url ?? null, journeyStatus: journeyMap.get(m.id) ?? null }));
 }
 
 export async function getMomentEditor(id: string): Promise<{ moment: Moment; media: MomentMedia[] } | null> {
