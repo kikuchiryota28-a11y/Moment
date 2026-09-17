@@ -140,20 +140,35 @@ function PointerField() {
 function SculpturalType() {
   const { pointer } = useThree();
   const [spring, api] = useSpring(() => ({
-    position: [-0.05, 0.1, -1.0] as [number, number, number],
-    rotation: [0, 0, -0.025] as [number, number, number],
+    x: -0.05,
+    y: 0.1,
+    z: -1.0,
+    rotationX: 0,
+    rotationY: 0,
+    rotationZ: -0.025,
     config: { tension: 95, friction: 28, mass: 1.5 },
   }));
 
   useFrame(() => {
     api.start({
-      position: [pointer.x * 0.18 - 0.05, pointer.y * 0.12 + 0.1, -1.0],
-      rotation: [pointer.y * -0.025, pointer.x * 0.035, -0.025],
+      x: pointer.x * 0.18 - 0.05,
+      y: pointer.y * 0.12 + 0.1,
+      z: -1.0,
+      rotationX: pointer.y * -0.025,
+      rotationY: pointer.x * 0.035,
+      rotationZ: -0.025,
     });
   });
 
   return (
-    <a.group position={spring.position} rotation={spring.rotation}>
+    <a.group
+      position-x={spring.x}
+      position-y={spring.y}
+      position-z={spring.z}
+      rotation-x={spring.rotationX}
+      rotation-y={spring.rotationY}
+      rotation-z={spring.rotationZ}
+    >
       <Text fontSize={1.72} maxWidth={7.8} lineHeight={0.82} letterSpacing={-0.075} anchorX="center" anchorY="middle" color="#211f1c" fillOpacity={0.11} depthOffset={-2}>
         MOMENT
       </Text>
@@ -174,8 +189,12 @@ function GlassCard({ moment }: { moment: MomentData }) {
   const cta = moment.myResultId ? "CONTINUE" : live ? "MAKE YOUR MOMENT" : started ? "WORLD IS FORMING." : busy ? "STARTING…" : "START THE MOMENT";
 
   const [spring, api] = useSpring(() => ({
-    position: [0, -0.55, 0.25] as [number, number, number],
-    rotation: [0, 0, 0] as [number, number, number],
+    x: 0,
+    y: -0.55,
+    z: 0.25,
+    rotationX: 0,
+    rotationY: 0,
+    rotationZ: 0,
     scale: 1,
     config: { tension: 150, friction: 20, mass: 1.2 },
   }));
@@ -183,8 +202,12 @@ function GlassCard({ moment }: { moment: MomentData }) {
   useFrame(() => {
     const proximity = Math.max(0, 1 - Math.hypot(pointer.x * 0.72, pointer.y * 0.82));
     api.start({
-      position: [pointer.x * 0.34 * proximity, -0.55 + pointer.y * 0.19 * proximity, 0.25 + proximity * 0.07],
-      rotation: [pointer.y * -0.15, pointer.x * 0.18, pointer.x * 0.035],
+      x: pointer.x * 0.34 * proximity,
+      y: -0.55 + pointer.y * 0.19 * proximity,
+      z: 0.25 + proximity * 0.07,
+      rotationX: pointer.y * -0.15,
+      rotationY: pointer.x * 0.18,
+      rotationZ: pointer.x * 0.035,
       scale: hovered ? 1.025 : 1 + proximity * 0.012,
     });
   });
@@ -203,8 +226,12 @@ function GlassCard({ moment }: { moment: MomentData }) {
 
   return (
     <a.group
-      position={spring.position}
-      rotation={spring.rotation}
+      position-x={spring.x}
+      position-y={spring.y}
+      position-z={spring.z}
+      rotation-x={spring.rotationX}
+      rotation-y={spring.rotationY}
+      rotation-z={spring.rotationZ}
       scale={spring.scale}
       onPointerOver={(event) => { event.stopPropagation(); setHovered(true); document.body.style.cursor = "pointer"; }}
       onPointerOut={() => { setHovered(false); document.body.style.cursor = ""; }}
