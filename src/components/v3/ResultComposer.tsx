@@ -63,8 +63,8 @@ export function ResultComposer({ dailyMomentId }: { dailyMomentId: string }) {
   const valid = type === "text" ? Boolean(text.trim()) : type === "choice" ? Boolean(choice) : Boolean(media) && (type !== "combination" || Boolean(text.trim()));
 
   return (
-    <div className="rounded-[32px] border border-white/60 bg-white/60 p-5 shadow-[0_24px_80px_rgba(83,65,45,.12),inset_0_1px_0_rgba(255,255,255,.9)] backdrop-blur-xl sm:p-7">
-      <p className="text-xs font-black uppercase tracking-[.18em] text-[#ef6b35]">Your answer</p>
+    <div className="rounded-[32px] border border-white/60 bg-white/40 p-5 shadow-[0_20px_50px_rgba(0,0,0,0.08)] backdrop-blur-2xl sm:p-7">
+      <p className="text-xs font-black uppercase tracking-[.18em] text-[#ef6b35]">YOUR ANSWER</p>
       <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Answer format">
         {TYPES.map(({ value, label }) => (
           <button key={value} type="button" onClick={() => { setType(value); setMessage(""); }} aria-selected={type === value} className={`rounded-full border px-4 py-2 text-xs font-black transition ${type === value ? "border-[#171614] bg-[#171614] text-white shadow-lg shadow-black/10" : "border-white/60 bg-white/35 text-[#171614] backdrop-blur-md hover:bg-white/60"}`}>
