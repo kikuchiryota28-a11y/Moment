@@ -5,7 +5,7 @@ export default async function Home() {
   const moment = await getTodayMoment();
 
   return (
-    <main className="relative min-h-[100dvh] overflow-hidden">
+    <main className="relative min-h-[100dvh] overflow-x-clip">
       <MomentHero
         moment={{
           id: moment.id,
