@@ -5,8 +5,17 @@ type DailyRow={id:string;moment_date:string;prompt:string;status:DailyMoment["st
 type ResultRow={id:string;daily_moment_id:string;user_id:string;result_type:Result["resultType"];text_content:string|null;choice_value:string|null;why:string|null;country_code:string|null;city:string|null;created_at:string;profiles:{username:string;display_name:string;avatar_url:string|null}|null;result_media:{media_url:string}[]|null};
 
 export async function getTodayMoment():Promise<DailyMoment>{
- const sb=await createClient();const{data:{user}}=await sb.auth.getUser();const{data:row,error}=await sb.rpc("ensure_today_moment");if(error)throw error;if(!row)throw new Error("Today's Moment is not prepared yet.");
- const d=row as unknown as DailyRow;const now=Date.now();const ends=new Date(d.ends_at).getTime();const status=d.status==="LIVE"&&ends<=now?"ENDED":d.status==="LIVE"&&ends-now<3*60*60*1000?"ENDING":d.status;
+ const sb=await createClient();
+ const{data:{user}}=await sb.auth.getUser();
+ let row:DailyRow|null=null;
+ const{data:rpcRow,error:rpcError}=await sb.rpc("ensure_today_moment");
+ if(!rpcError&&rpcRow) row=rpcRow as unknown as DailyRow;
+ if(!row){
+  const{data:directRow}=await sb.from("daily_moments").select("id,moment_date,prompt,status,first_mover_id,started_at,ends_at").eq("moment_date",new Date().toISOString().slice(0,10)).maybeSingle();
+  row=directRow as DailyRow|null;
+ }
+ if(!row)throw new Error("Today's Moment is not available yet.");
+ const d=row;const now=Date.now();const ends=new Date(d.ends_at).getTime();const status=d.status==="LIVE"&&ends<=now?"ENDED":d.status==="LIVE"&&ends-now<3*60*60*1000?"ENDING":d.status;
  const[{count},my]=await Promise.all([sb.from("results").select("id",{count:"exact",head:true}).eq("daily_moment_id",d.id).eq("moderation_status","VISIBLE"),user?sb.from("results").select("id").eq("daily_moment_id",d.id).eq("user_id",user.id).maybeSingle():Promise.resolve({data:null})]);
  return{id:d.id,momentDate:d.moment_date,prompt:d.prompt,status:status as DailyMoment["status"],firstMoverId:d.first_mover_id,startedAt:d.started_at,endsAt:d.ends_at,participantCount:count??0,myResultId:my.data?.id??null};
 }
