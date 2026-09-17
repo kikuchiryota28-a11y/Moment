@@ -5,7 +5,7 @@ export default async function Home() {
   const moment = await getTodayMoment();
 
   return (
-    <main className="relative min-h-[100dvh] overflow-x-clip">
+    <main className="h-[100dvh] w-full overflow-hidden">
       <MomentHero
         moment={{
           id: moment.id,
@@ -15,11 +15,6 @@ export default async function Home() {
           myResultId: moment.myResultId,
         }}
       />
-      <div className="sr-only">
-        <h1>MOMENT — SAME QUESTION. DIFFERENT REALITY.</h1>
-        <p>Today&apos;s Moment: {moment.prompt}</p>
-        <p>{moment.participantCount.toLocaleString()} people are in this Moment.</p>
-      </div>
     </main>
   );
 }
