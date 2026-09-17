@@ -1,14 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { startTodayMoment } from "@/actions/v3";
-import { HighEndWorldView } from "@/components/v3/HighEndWorldView";
-import { ShaderCard } from "@/components/v3/ShaderCard";
 
- type Props = {
+const ImmersiveWorldCanvas = dynamic(
+  () => import("@/components/v3/ImmersiveWorldCanvas").then((mod) => mod.ImmersiveWorldCanvas),
+  { ssr: false },
+);
+
+type Props = {
   id: string;
   prompt: string;
   participantCount: number;
@@ -19,133 +23,141 @@ import { ShaderCard } from "@/components/v3/ShaderCard";
 export function DynamicHome({ id, prompt, participantCount, status, myResultId }: Props) {
   const router = useRouter();
   const reduce = useReducedMotion();
-  const [starting, setStarting] = useState(false);
-  const [entered, setEntered] = useState(Boolean(myResultId));
+  const [entering, setEntering] = useState(false);
   const live = ["FIRST_MOVER", "LIVE", "ENDING"].includes(status);
 
   async function enter() {
+    if (entering) return;
     if (myResultId) {
-      router.push(`/moment/${id}`);
+      setEntering(true);
+      window.setTimeout(() => router.push(`/moment/${id}`), reduce ? 0 : 650);
       return;
     }
-
     if (live) {
-      setEntered(true);
+      setEntering(true);
       window.setTimeout(() => router.push(`/moment/${id}`), reduce ? 0 : 900);
       return;
     }
 
-    if (starting) return;
-    setStarting(true);
+    setEntering(true);
     const result = await startTodayMoment(id);
     if (result.success) {
-      setEntered(true);
       window.setTimeout(() => router.push(`/moment/${id}`), reduce ? 0 : 900);
     } else {
-      setStarting(false);
+      setEntering(false);
     }
   }
 
   return (
-    <main className="relative min-h-[calc(100vh-7rem)] overflow-hidden py-5 sm:py-8">
-      <HighEndWorldView active={entered} />
-
-      <motion.div
-        className="pointer-events-none fixed inset-0 z-30 bg-neutral-950"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: entered ? 0.96 : 0 }}
-        transition={{ duration: reduce ? 0 : 0.72, ease: [0.16, 1, 0.3, 1] }}
-      />
-
-      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-8rem)] max-w-6xl flex-col px-1 sm:px-4">
-        <header className="flex items-center justify-between py-3">
-          <motion.p
-            initial={reduce ? false : { opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-[11px] font-black uppercase tracking-[0.3em]"
-          >
-            MOMENT
-          </motion.p>
-          <div className="flex items-center gap-3">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)] shadow-[0_0_14px_var(--accent)]" />
-            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--muted)]">{live ? "LIVE NOW" : "WAITING"}</p>
-          </div>
-        </header>
-
-        <section className="flex flex-1 items-center py-10 sm:py-14">
-          <div className="grid w-full items-center gap-12 lg:grid-cols-[1fr_0.82fr] lg:gap-16">
-            <div className="order-2 lg:order-1">
-              <motion.div
-                initial={reduce ? false : { opacity: 0, x: -24 }}
-                animate={{ opacity: entered ? 0 : 1, x: 0 }}
-                transition={{ type: "spring", stiffness: 130, damping: 22, delay: 0.05 }}
-              >
-                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--accent)]">
-                  RIGHT NOW, SOMEWHERE IN THE WORLD
-                </p>
-                <h1 className="mt-5 max-w-3xl text-[clamp(4rem,11vw,9.5rem)] font-black leading-[0.78] tracking-[-0.09em]">
-                  TODAY&apos;S<br />MOMENT.
-                </h1>
-                <div className="mt-8 flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
-                  <span className="h-px w-12 bg-[var(--line)]" />
-                  SAME QUESTION. DIFFERENT REALITY.
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={reduce ? false : { opacity: 0, y: 24 }}
-                animate={{ opacity: entered ? 0 : 1, y: 0 }}
-                transition={{ type: "spring", stiffness: 120, damping: 24, delay: 0.16 }}
-                className="mt-12 max-w-xl"
-              >
-                <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[var(--muted)]">THE QUESTION</p>
-                <p className="mt-3 text-xl font-medium leading-[1.05] tracking-[-0.035em] sm:text-2xl">{prompt}</p>
-              </motion.div>
-            </div>
-
-            <motion.div
-              className="order-1 lg:order-2"
-              initial={reduce ? false : { opacity: 0, scale: 0.94, y: 22 }}
-              animate={{ opacity: entered ? 0 : 1, scale: 1, y: 0 }}
-              transition={{ type: "spring", stiffness: 110, damping: 20, delay: 0.1 }}
-            >
-              <ShaderCard
-                prompt={prompt}
-                participantCount={participantCount}
-                onEnter={() => void enter()}
-                entering={starting || entered}
-              />
-            </motion.div>
-          </div>
-        </section>
-
-        <motion.footer
-          initial={reduce ? false : { opacity: 0 }}
-          animate={{ opacity: entered ? 0 : 1 }}
-          transition={{ duration: 0.5, delay: 0.35 }}
-          className="flex items-center justify-between border-t border-[var(--line)] py-5 text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]"
-        >
-          <Link href="/journey" className="transition-opacity hover:opacity-60">YOUR JOURNEY</Link>
-          <span>{new Date().getFullYear()} / MOMENT</span>
-        </motion.footer>
+    <main className="relative left-1/2 min-h-[calc(100vh-7rem)] w-screen -translate-x-1/2 overflow-hidden bg-[var(--bg)] text-[var(--ink)]">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(255,255,255,.8),transparent_38%),radial-gradient(circle_at_18%_18%,rgba(215,231,223,.24),transparent_28%),radial-gradient(circle_at_82%_75%,rgba(231,210,186,.2),transparent_30%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_35%,rgba(20,24,22,.08)_100%)]" />
       </div>
 
       <motion.div
-        className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center"
-        initial={false}
-        animate={{ opacity: entered ? 1 : 0 }}
-        transition={{ duration: reduce ? 0 : 0.3, delay: entered ? 0.35 : 0 }}
+        className="pointer-events-none absolute inset-0 z-40 bg-neutral-950"
+        animate={{ opacity: entering ? 0.94 : 0 }}
+        transition={{ duration: reduce ? 0 : 0.72, ease: [0.16, 1, 0.3, 1] }}
+      />
+
+      <div className="relative mx-auto flex min-h-[calc(100vh-7rem)] max-w-[1500px] flex-col px-5 sm:px-8 lg:px-12">
+        <header className="relative z-30 flex items-center justify-between py-5 sm:py-7">
+          <p className="text-[11px] font-black uppercase tracking-[0.34em]">MOMENT</p>
+          <div className="flex items-center gap-2.5 text-[9px] font-bold uppercase tracking-[0.22em] text-[var(--muted)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)] shadow-[0_0_14px_var(--accent)]" />
+            {live ? "LIVE NOW" : "WAITING"}
+          </div>
+        </header>
+
+        <section className="relative flex flex-1 items-center justify-center py-4 sm:py-8">
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center overflow-visible">
+            <motion.h1
+              initial={reduce ? false : { opacity: 0, scale: 0.97 }}
+              animate={{ opacity: entering ? 0 : 0.9, scale: entering ? 1.06 : 1 }}
+              transition={{ type: "spring", stiffness: 80, damping: 24 }}
+              className="absolute w-[120vw] text-center text-[clamp(4rem,13vw,12.5rem)] font-black uppercase leading-[0.78] tracking-[-0.105em] text-neutral-950"
+            >
+              SAME QUESTION.<br />DIFFERENT REALITY.
+            </motion.h1>
+          </div>
+
+          <ImmersiveWorldCanvas active={entering} />
+
+          <motion.div
+            className="relative z-20 w-full max-w-[430px] [perspective:1400px]"
+            initial={reduce ? false : { opacity: 0, y: 30, scale: 0.96 }}
+            animate={{ opacity: entering ? 0 : 1, y: 0, scale: entering ? 1.08 : 1 }}
+            transition={{ type: "spring", stiffness: 105, damping: 22, delay: 0.12 }}
+          >
+            <motion.div
+              whileHover={reduce ? undefined : { y: -6, rotateX: -1.5 }}
+              transition={{ type: "spring", stiffness: 220, damping: 20 }}
+              className="relative overflow-hidden rounded-[34px] border border-white/35 bg-white/40 p-6 shadow-[0_32px_100px_rgba(20,24,22,.18),inset_0_1px_0_rgba(255,255,255,.8)] backdrop-blur-2xl sm:rounded-[40px] sm:p-8"
+              style={{ transformStyle: "preserve-3d" }}
+            >
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(125deg,rgba(255,255,255,.5),transparent_28%,rgba(255,255,255,.1)_52%,transparent_72%)]" />
+              <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-white/35 blur-3xl" />
+
+              <div className="relative z-10 flex min-h-[390px] flex-col justify-between sm:min-h-[430px]">
+                <div className="flex items-start justify-between">
+                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-neutral-900/55">TODAY&apos;S MOMENT</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-900/35">01 / 01</p>
+                </div>
+
+                <div className="py-10">
+                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-neutral-900/40">THE QUESTION</p>
+                  <h2 className="mt-4 text-[clamp(2rem,6vw,3.55rem)] font-medium leading-[0.93] tracking-[-0.065em] text-neutral-950">
+                    {prompt}
+                  </h2>
+                </div>
+
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-2xl font-medium tracking-[-0.05em]">{participantCount.toLocaleString()}</p>
+                    <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.18em] text-neutral-900/40">people are in</p>
+                  </div>
+                  <motion.button
+                    type="button"
+                    onClick={() => void enter()}
+                    disabled={entering}
+                    whileTap={reduce ? undefined : { scale: 0.92 }}
+                    className="rounded-full border border-neutral-950/10 bg-neutral-950 px-6 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-[0_10px_30px_rgba(0,0,0,.16)] transition-opacity disabled:opacity-70"
+                  >
+                    {entering ? "ENTERING" : "ENTER →"}
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-25 hidden items-end justify-between sm:flex">
+            <p className="max-w-[280px] text-[9px] font-bold uppercase leading-[1.6] tracking-[0.18em] text-[var(--muted)]">
+              ONE QUESTION.<br />THOUSANDS OF REALITIES.
+            </p>
+            <p className="text-right text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
+              MOVE THROUGH<br />THE MOMENT.
+            </p>
+          </div>
+        </section>
+
+        <footer className="relative z-30 flex items-center justify-between border-t border-black/10 py-5 text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
+          <Link href="/journey" className="transition-opacity hover:opacity-55">YOUR JOURNEY</Link>
+          <span>{new Date().getFullYear()} / MOMENT</span>
+        </footer>
+      </div>
+
+      <motion.div
+        className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center"
+        animate={{ opacity: entering ? 1 : 0 }}
+        transition={{ duration: reduce ? 0 : 0.25, delay: entering ? 0.22 : 0 }}
       >
         <motion.div
-          initial={false}
-          animate={entered ? { scale: [0.65, 1, 1.08], opacity: [0, 1, 1, 0] } : { scale: 0.65, opacity: 0 }}
-          transition={{ duration: reduce ? 0 : 0.9, times: [0, 0.35, 0.75, 1], ease: [0.16, 1, 0.3, 1] }}
-          className="absolute h-44 w-44 rounded-full border border-white/20 bg-white/5 blur-[1px]"
+          animate={entering ? { scale: [0.55, 1, 2.8], opacity: [0, 0.75, 0] } : { scale: 0.55, opacity: 0 }}
+          transition={{ duration: reduce ? 0 : 0.95, ease: [0.16, 1, 0.3, 1] }}
+          className="h-36 w-36 rounded-full border border-white/30 bg-white/10 shadow-[0_0_100px_rgba(255,255,255,.35)] backdrop-blur-sm"
         />
-        <div className="relative text-center text-white">
-          <p className="text-[9px] font-bold uppercase tracking-[0.34em] text-white/45">MOMENT</p>
-          <p className="mt-4 text-5xl font-medium tracking-[-0.07em]">YOU&apos;RE IN.</p>
-        </div>
+        <p className="absolute text-[10px] font-black uppercase tracking-[0.4em] text-white">YOU&apos;RE IN.</p>
       </motion.div>
     </main>
   );
