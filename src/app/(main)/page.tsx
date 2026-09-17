@@ -1,4 +1,4 @@
-import { MomentPhysicsScene } from "@/components/v3/MomentPhysicsScene";
+import { MomentHero } from "@/components/v3/MomentHero";
 import { getTodayMoment } from "@/lib/db/v3";
 
 export default async function Home() {
@@ -6,7 +6,7 @@ export default async function Home() {
 
   return (
     <main className="relative min-h-[100dvh] overflow-hidden">
-      <MomentPhysicsScene
+      <MomentHero
         moment={{
           id: moment.id,
           prompt: moment.prompt,
