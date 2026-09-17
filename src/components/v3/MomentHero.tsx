@@ -14,21 +14,21 @@ type MomentData = {
   myResultId: string | null;
 };
 
-const spring = { type: "spring", stiffness: 150, damping: 24, mass: 0.8 } as const;
+const spring = { type: "spring", stiffness: 120, damping: 22, mass: 1 } as const;
 
 export function MomentHero({ moment }: { moment: MomentData }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [started, setStarted] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const [focused, setFocused] = useState(false);
 
   const px = useMotionValue(0);
   const py = useMotionValue(0);
-  const rotateX = useSpring(useTransform(py, [-0.5, 0.5], [2.8, -2.8]), spring);
-  const rotateY = useSpring(useTransform(px, [-0.5, 0.5], [-3.5, 3.5]), spring);
-  const glowX = useTransform(px, [-0.5, 0.5], ["42%", "58%"]);
-  const glowY = useTransform(py, [-0.5, 0.5], ["42%", "58%"]);
+  const sphereX = useSpring(useTransform(px, [-0.5, 0.5], [-16, 16]), spring);
+  const sphereY = useSpring(useTransform(py, [-0.5, 0.5], [-12, 12]), spring);
+  const cardX = useSpring(useTransform(px, [-0.5, 0.5], [-7, 7]), spring);
+  const cardY = useSpring(useTransform(py, [-0.5, 0.5], [-5, 5]), spring);
+  const sphereRotate = useSpring(useTransform(px, [-0.5, 0.5], [-2, 2]), spring);
 
   useEffect(() => {
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -72,208 +72,117 @@ export function MomentHero({ moment }: { moment: MomentData }) {
 
   return (
     <section
-      className="relative min-h-[100svh] overflow-hidden bg-[#f3eee5] text-[#191816]"
+      className="relative h-[100dvh] w-full overflow-hidden bg-[#eee9df] text-[#181715]"
       onPointerMove={handlePointerMove}
       onPointerLeave={() => {
         px.set(0);
         py.set(0);
-        setFocused(false);
       }}
     >
-      <div className="pointer-events-none absolute inset-0">
-        <motion.div
-          className="absolute -left-[12vw] top-[4vh] h-[42vw] w-[42vw] rounded-full blur-3xl"
-          animate={reducedMotion ? undefined : { x: [0, 35, 0], y: [0, 24, 0], scale: [1, 1.08, 1] }}
-          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-          style={{ background: "radial-gradient(circle, rgba(239,107,53,.16), rgba(239,107,53,0) 68%)" }}
-        />
-        <motion.div
-          className="absolute -right-[10vw] bottom-[2vh] h-[38vw] w-[38vw] rounded-full blur-3xl"
-          animate={reducedMotion ? undefined : { x: [0, -30, 0], y: [0, -20, 0], scale: [1, 1.06, 1] }}
-          transition={{ duration: 21, repeat: Infinity, ease: "easeInOut" }}
-          style={{ background: "radial-gradient(circle, rgba(105,122,154,.12), rgba(105,122,154,0) 70%)" }}
-        />
-        <div
-          className="absolute inset-0 opacity-[0.035] mix-blend-multiply"
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.9'/%3E%3C/svg%3E\")",
-          }}
-        />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_25%,rgba(25,24,22,.06)_100%)]" />
+      {/* Layer 1 — atmosphere + giant editorial type */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_44%,#faf7f0_0%,#eee9df_48%,#dcd5c9_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_100%,rgba(24,23,21,.08),transparent_48%)]" />
+        <div className="absolute -left-[18vw] -top-[18vw] h-[55vw] w-[55vw] rounded-full bg-white/55 blur-[110px]" />
+        <div className="absolute -bottom-[25vw] -right-[15vw] h-[60vw] w-[60vw] rounded-full bg-[#d8c8b4]/35 blur-[120px]" />
+        <div className="moment-noise absolute inset-0 opacity-40" aria-hidden="true" />
+
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="select-none whitespace-nowrap text-[clamp(7rem,22vw,25rem)] font-semibold leading-none tracking-[-0.09em] text-black/[0.045]">
+            MOMENT
+          </div>
+        </div>
+
+        <div className="absolute left-5 top-5 text-[10px] font-black uppercase tracking-[0.28em] text-black/55 sm:left-8 sm:top-7 lg:left-10">
+          MOMENT
+        </div>
+
+        <div className="absolute right-5 top-5 flex items-center gap-3 text-[9px] font-bold uppercase tracking-[0.18em] text-black/30 sm:right-8 sm:top-7 lg:right-10">
+          <span>DAILY</span>
+          <span className="h-px w-8 bg-black/15" />
+          <span>NOW</span>
+        </div>
       </div>
 
-      <header className="relative z-30 flex items-center justify-between px-5 pt-5 sm:px-8 sm:pt-8 lg:px-10">
-        <div className="flex items-center gap-4">
-          <span className="text-[11px] font-black tracking-[0.28em]">MOMENT</span>
-          <span className="hidden text-[10px] font-semibold uppercase tracking-[0.2em] text-black/35 sm:block">/ Daily discovery</span>
-        </div>
-        <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.16em] text-black/45">
-          <span>03</span>
-          <span className="h-px w-7 bg-black/15" />
-          <span>Today</span>
-        </div>
-      </header>
-
-      <div className="relative z-10 mx-auto flex min-h-[calc(100svh-76px)] max-w-[1500px] items-center px-5 pb-14 pt-8 sm:px-8 lg:px-10">
-        <div className="grid w-full grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,0.82fr)_minmax(560px,1.18fr)] lg:gap-6">
-          <div className="relative z-20 max-w-[580px] lg:pl-[3vw]">
-            <motion.p
-              initial={reducedMotion ? false : { opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.65 }}
-              className="mb-6 text-[10px] font-black uppercase tracking-[0.28em] text-[#ef6b35]"
-            >
-              TODAY&apos;S MOMENT
-            </motion.p>
-
-            <motion.h1
-              initial={reducedMotion ? false : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.75, delay: 0.08 }}
-              className="max-w-[11ch] text-[clamp(3.25rem,7vw,7rem)] font-semibold leading-[0.86] tracking-[-0.065em]"
-            >
-              Make
-              <br />
-              something
-              <br />
-              happen.
-            </motion.h1>
-
-            <motion.p
-              initial={reducedMotion ? false : { opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.16 }}
-              className="mt-7 max-w-[34rem] text-[15px] leading-7 text-black/48 sm:text-base"
-            >
-              One question. One small decision. A different reality on the other side.
-            </motion.p>
-
-            <div className="mt-9 flex items-center gap-4">
-              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-black/38">
-                {moment.participantCount.toLocaleString()} people in this Moment
-              </span>
-              <span className="h-px w-8 bg-black/15" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-black/38">01 / 01</span>
-            </div>
-          </div>
-
-          <div className="relative flex min-h-[500px] items-center justify-center sm:min-h-[620px] lg:min-h-[720px]">
-            <div className="pointer-events-none absolute inset-0">
-              <div className="absolute left-[8%] top-[15%] h-px w-[30%] bg-black/10" />
-              <div className="absolute right-[3%] top-[25%] h-px w-[20%] bg-black/8" />
-              <div className="absolute bottom-[18%] left-[14%] h-px w-[20%] bg-black/8" />
-              <span className="absolute left-[7%] top-[12%] text-[9px] font-bold uppercase tracking-[0.2em] text-black/25">DISCOVER</span>
-              <span className="absolute bottom-[15%] right-[5%] text-[9px] font-bold uppercase tracking-[0.2em] text-black/25">FOCUS</span>
-            </div>
-
+      {/* Layer 2 — the single spatial object */}
+      <div className="absolute inset-0 z-10 flex items-center justify-center">
+        <motion.div
+          className="relative h-[min(68vh,700px)] w-[min(68vh,700px)] sm:h-[min(70vh,760px)] sm:w-[min(70vh,760px)]"
+          style={{ x: reducedMotion ? 0 : sphereX, y: reducedMotion ? 0 : sphereY, rotate: reducedMotion ? 0 : sphereRotate }}
+        >
+          <motion.div
+            className="absolute inset-[8%] rounded-full"
+            animate={reducedMotion ? undefined : { scale: [1, 1.025, 1], rotate: [0, 2, 0] }}
+            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+            style={{
+              background:
+                "radial-gradient(circle at 34% 25%, rgba(255,255,255,.98) 0%, rgba(255,255,255,.72) 12%, rgba(238,225,207,.86) 32%, rgba(190,170,145,.76) 62%, rgba(116,99,79,.72) 100%)",
+              boxShadow:
+                "inset 45px 40px 85px rgba(255,255,255,.48), inset -55px -65px 100px rgba(50,42,33,.18), 0 55px 120px rgba(50,42,33,.16)",
+            }}
+          >
+            <div className="absolute inset-[7%] rounded-full border border-white/55 opacity-70" />
+            <div className="absolute left-[18%] top-[16%] h-[25%] w-[25%] rounded-full bg-white/50 blur-2xl" />
+            <div className="absolute right-[15%] bottom-[18%] h-[32%] w-[32%] rounded-full bg-[#ef6b35]/12 blur-3xl" />
             <motion.div
-              className="relative w-[min(88vw,620px)] [perspective:1400px]"
-              style={{ rotateX, rotateY }}
-              onHoverStart={() => setFocused(true)}
-              onHoverEnd={() => setFocused(false)}
-              initial={reducedMotion ? false : { opacity: 0, scale: 0.94, y: 28 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ ...spring, delay: 0.12 }}
-            >
-              <motion.div
-                className="pointer-events-none absolute -inset-10 rounded-[50px] opacity-80 blur-2xl"
-                style={{
-                  background: "radial-gradient(circle at 50% 45%, rgba(255,255,255,.92), rgba(239,107,53,.09) 42%, transparent 72%)",
-                  x: useTransform(px, [-0.5, 0.5], ["-3%", "3%"]),
-                  y: useTransform(py, [-0.5, 0.5], ["-3%", "3%"]),
-                }}
-              />
+              className="absolute left-[26%] top-[46%] h-[13%] w-[48%] rounded-full bg-white/25 blur-xl"
+              animate={reducedMotion ? undefined : { x: [-10, 14, -10], opacity: [0.35, 0.6, 0.35] }}
+              transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </motion.div>
 
-              <div className="relative rounded-[34px] p-[1px] shadow-[0_35px_100px_rgba(31,27,21,.13),0_8px_28px_rgba(31,27,21,.08)]"
-                style={{ background: "linear-gradient(145deg, rgba(255,255,255,.96), rgba(255,255,255,.34) 42%, rgba(255,255,255,.72))" }}
-              >
-                <div className="relative overflow-hidden rounded-[33px] bg-white/35 p-5 backdrop-blur-2xl sm:p-7">
-                  <motion.div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{ background: useTransform([glowX, glowY], ([x, y]) => `radial-gradient(circle at ${x} ${y}, rgba(255,255,255,.9), transparent 36%)`) }}
-                  />
-                  <div className="relative overflow-hidden rounded-[27px] border border-white/75 bg-[#ebe4d8]/75">
-                    <div className="relative aspect-[1.18/1] overflow-hidden">
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_30%,rgba(255,255,255,.95),transparent_26%),radial-gradient(circle_at_72%_70%,rgba(239,107,53,.2),transparent_28%),linear-gradient(135deg,#e9e0d2,#cfc5b7)]" />
-                      <motion.div
-                        className="absolute left-[17%] top-[19%] h-[48%] w-[48%] rounded-full border border-white/65 bg-white/20 shadow-[inset_12px_12px_30px_rgba(255,255,255,.7),inset_-12px_-16px_28px_rgba(78,66,50,.08),0_30px_70px_rgba(67,54,38,.13)] backdrop-blur-sm"
-                        animate={reducedMotion ? undefined : { y: [0, -9, 0], x: [0, 6, 0], scale: [1, 1.015, 1] }}
-                        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-                      />
-                      <motion.div
-                        className="absolute bottom-[13%] right-[13%] h-[22%] w-[22%] rounded-full border border-white/55 bg-[#ef6b35]/10 backdrop-blur-md"
-                        animate={reducedMotion ? undefined : { y: [0, 10, 0], x: [0, -5, 0] }}
-                        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
-                      />
-                      <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent_35%,rgba(255,255,255,.22)_50%,transparent_65%)] opacity-70" />
-                      <span className="absolute left-5 top-5 text-[9px] font-black uppercase tracking-[0.24em] text-black/40">A MOMENT IS OPEN</span>
-                      <span className="absolute bottom-5 right-5 text-[9px] font-bold uppercase tracking-[0.18em] text-black/30">REAL / NOW</span>
-                    </div>
+          <div className="absolute -bottom-[1%] left-1/2 h-[12%] w-[55%] -translate-x-1/2 rounded-full bg-black/12 blur-3xl" />
+        </motion.div>
+      </div>
 
-                    <div className="relative border-t border-white/65 bg-white/40 p-5 sm:p-6">
-                      <div className="flex items-start justify-between gap-5">
-                        <div className="max-w-[34rem]">
-                          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#ef6b35]">THE QUESTION</p>
-                          <h2 className="mt-3 text-[clamp(1.45rem,3vw,2.4rem)] font-semibold leading-[1.02] tracking-[-0.04em]">
-                            {moment.prompt}
-                          </h2>
-                        </div>
-                        <span className="hidden pt-1 text-[9px] font-bold uppercase tracking-[0.18em] text-black/30 sm:block">TODAY</span>
-                      </div>
-
-                      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-                        <motion.button
-                          type="button"
-                          onClick={() => void activate()}
-                          disabled={busy || started}
-                          whileTap={reducedMotion ? undefined : { scale: 0.975 }}
-                          className="group relative flex h-14 flex-1 items-center justify-between overflow-hidden rounded-[17px] bg-[#191816] px-5 text-left text-[#f8f4ec] shadow-[0_10px_25px_rgba(25,24,22,.16)] transition-shadow hover:shadow-[0_16px_35px_rgba(25,24,22,.2)] disabled:cursor-default disabled:opacity-70"
-                        >
-                          <span className="relative z-10 text-[10px] font-black uppercase tracking-[0.18em]">{cta}</span>
-                          <span className="relative z-10 text-lg transition-transform duration-300 group-hover:translate-x-1">↗</span>
-                          <span className="absolute inset-y-0 left-0 w-1/2 -translate-x-full bg-white/10 blur-xl transition-transform duration-700 group-hover:translate-x-[180%]" />
-                        </motion.button>
-                        <div className="flex h-14 items-center justify-center rounded-[15px] border border-black/8 bg-white/30 px-4 text-[9px] font-bold uppercase tracking-[0.14em] text-black/38">
-                          {focused ? "YOU ARE CLOSE" : "MOVE CLOSER"}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+      {/* Layer 3 — one floating glass card, intentionally crossing the sphere */}
+      <motion.div
+        className="absolute left-1/2 top-[57%] z-20 w-[min(88vw,560px)] -translate-x-1/2 -translate-y-1/2 sm:top-[58%] lg:left-[54%] lg:top-[60%] lg:w-[min(42vw,590px)]"
+        style={{ x: reducedMotion ? 0 : cardX, y: reducedMotion ? 0 : cardY }}
+        initial={reducedMotion ? false : { opacity: 0, y: 28, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ ...spring, delay: 0.2 }}
+      >
+        <div className="relative rounded-[30px] border border-white/65 bg-white/[0.22] p-2 shadow-[0_35px_100px_rgba(38,31,23,.18),0_8px_25px_rgba(38,31,23,.1)] backdrop-blur-2xl">
+          <div className="rounded-[24px] border border-white/45 bg-white/[0.42] p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-5">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.24em] text-[#ef6b35]">
+                  TODAY&apos;S MOMENT
+                </p>
+                <h1 className="mt-3 max-w-[13ch] text-[clamp(1.7rem,3.3vw,2.65rem)] font-semibold leading-[0.98] tracking-[-0.045em]">
+                  {moment.prompt}
+                </h1>
               </div>
-            </motion.div>
+              <span className="pt-1 text-[9px] font-bold uppercase tracking-[0.16em] text-black/30">
+                01
+              </span>
+            </div>
 
-            <div className="pointer-events-none absolute bottom-[3%] left-1/2 hidden -translate-x-1/2 items-center gap-3 text-[9px] font-bold uppercase tracking-[0.2em] text-black/25 md:flex">
-              <span className="h-px w-8 bg-black/12" />
-              SCROLL TO DISCOVER
-              <span className="h-px w-8 bg-black/12" />
+            <div className="mt-5 flex items-end justify-between gap-4">
+              <p className="max-w-[20rem] text-[11px] leading-5 text-black/42">
+                {moment.participantCount.toLocaleString()} people are in this Moment.
+              </p>
+              <button
+                type="button"
+                onClick={() => void activate()}
+                disabled={busy || started}
+                className="group flex h-12 shrink-0 items-center gap-4 rounded-[15px] bg-[#181715] px-4 text-[9px] font-black uppercase tracking-[0.16em] text-[#f7f2e9] shadow-[0_12px_25px_rgba(24,23,21,.2)] transition-transform duration-300 hover:-translate-y-0.5 active:scale-[.98] disabled:opacity-65"
+              >
+                <span>{cta}</span>
+                <span className="text-base transition-transform duration-300 group-hover:translate-x-1">↗</span>
+              </button>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="relative z-10 border-t border-black/7 bg-white/15 px-5 py-14 backdrop-blur-sm sm:px-8 lg:px-10">
-        <div className="mx-auto grid max-w-[1500px] gap-10 lg:grid-cols-[0.7fr_1.3fr] lg:items-end">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#ef6b35]">DISCOVER / 01</p>
-            <p className="mt-4 max-w-[18rem] text-[clamp(1.9rem,4vw,3.6rem)] font-semibold leading-[0.95] tracking-[-0.055em]">
-              Your next experience starts smaller than you think.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {[
-              ["01", "NOTICE", "Something catches your attention."],
-              ["02", "DECIDE", "You choose whether to step closer."],
-              ["03", "TRY", "One action turns a thought into reality."],
-            ].map(([n, title, copy]) => (
-              <div key={n} className="rounded-[22px] border border-black/8 bg-white/28 p-5 backdrop-blur-xl">
-                <span className="text-[9px] font-black tracking-[0.2em] text-black/25">{n}</span>
-                <h3 className="mt-7 text-[11px] font-black uppercase tracking-[0.18em]">{title}</h3>
-                <p className="mt-3 text-sm leading-6 text-black/42">{copy}</p>
-              </div>
-            ))}
-          </div>
+      {/* Layer 4 — atmospheric labels only; navigation itself is the existing floating glass nav */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-[92px] z-30 hidden items-center justify-center md:flex">
+        <div className="flex items-center gap-3 text-[8px] font-bold uppercase tracking-[0.22em] text-black/25">
+          <span className="h-px w-10 bg-black/12" />
+          STEP CLOSER
+          <span className="h-px w-10 bg-black/12" />
         </div>
       </div>
     </section>
