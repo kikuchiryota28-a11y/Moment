@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { BottomNavigation } from "@/components/layout/BottomNavigation";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { AppShell } from "@/components/layout/AppShell";
 import type { ThemePreference } from "@/types/database";
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
@@ -13,12 +13,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
 
   return (
     <ThemeProvider initialTheme={theme}>
-      <div className="relative z-10 min-h-screen">
-        <main className="mx-auto min-h-screen w-full px-4 pb-28 sm:px-6">
-          {children}
-        </main>
-        <BottomNavigation />
-      </div>
+      <AppShell>{children}</AppShell>
     </ThemeProvider>
   );
 }
