@@ -9,3 +9,10 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: Arial, 
 button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
 ::selection { background: #ef6b35; color: white; }
+
+@keyframes moment-aura-left { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(8vw, 5vh, 0) scale(1.12); } }
+@keyframes moment-aura-right { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(-7vw, -6vh, 0) scale(1.08); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
