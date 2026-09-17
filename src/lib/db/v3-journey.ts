@@ -1,0 +1,2 @@
+import { createClient } from "@/lib/supabase/server";
+export async function getMyV3Results(){const sb=await createClient();const{data:{user}}=await sb.auth.getUser();if(!user)return[];const{data,error}=await sb.from("results").select("id,daily_moment_id,result_type,text_content,choice_value,why,created_at,daily_moments(prompt,moment_date),result_media(media_url)").eq("user_id",user.id).order("created_at",{ascending:false}).limit(100);if(error)throw error;return data??[];}
