@@ -2,11 +2,12 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Bloom, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
-import { Html, RoundedBox, Text } from "@react-three/drei";
+import { RoundedBox, Text } from "@react-three/drei";
 import { a, useSpring } from "@react-spring/three";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import { startTodayMoment } from "@/actions/v3";
 
 const fluidVertex = `
   varying vec2 vUv;
@@ -104,22 +105,13 @@ function FluidPlane() {
   useFrame((state) => {
     if (!material.current) return;
     material.current.uniforms.uTime.value = state.clock.elapsedTime;
-    material.current.uniforms.uPointer.value.lerp(
-      new THREE.Vector2(pointer.x, pointer.y),
-      0.14,
-    );
+    material.current.uniforms.uPointer.value.lerp(new THREE.Vector2(pointer.x, pointer.y), 0.14);
   });
 
   return (
     <mesh position={[0, 0, -3.5]} scale={[13, 8, 1]}>
-      <planeGeometry args={[2, 2, 1, 1]} />
-      <shaderMaterial
-        ref={material}
-        uniforms={uniforms}
-        vertexShader={fluidVertex}
-        fragmentShader={fluidFragment}
-        depthWrite={false}
-      />
+      <planeGeometry args={[2, 2]} />
+      <shaderMaterial ref={material} uniforms={uniforms} vertexShader={fluidVertex} fragmentShader={fluidFragment} depthWrite={false} />
     </mesh>
   );
 }
@@ -162,27 +154,10 @@ function SculpturalType() {
 
   return (
     <a.group position={spring.position} rotation={spring.rotation}>
-      <Text
-        fontSize={1.72}
-        maxWidth={7.8}
-        lineHeight={0.82}
-        letterSpacing={-0.075}
-        anchorX="center"
-        anchorY="middle"
-        color="#211f1c"
-        fillOpacity={0.11}
-        depthOffset={-2}
-      >
+      <Text fontSize={1.72} maxWidth={7.8} lineHeight={0.82} letterSpacing={-0.075} anchorX="center" anchorY="middle" color="#211f1c" fillOpacity={0.11} depthOffset={-2}>
         MOMENT
       </Text>
-      <Text
-        position={[0.03, -1.35, 0.08]}
-        fontSize={0.23}
-        letterSpacing={0.18}
-        anchorX="center"
-        color="#211f1c"
-        fillOpacity={0.35}
-      >
+      <Text position={[0.03, -1.35, 0.08]} fontSize={0.23} letterSpacing={0.18} anchorX="center" color="#211f1c" fillOpacity={0.35}>
         SAME QUESTION / DIFFERENT REALITY
       </Text>
     </a.group>
@@ -193,8 +168,10 @@ function GlassCard({ moment }: { moment: MomentData }) {
   const router = useRouter();
   const { pointer } = useThree();
   const [hovered, setHovered] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [started, setStarted] = useState(false);
   const live = ["FIRST_MOVER", "LIVE", "ENDING"].includes(moment.status);
-  const cta = moment.myResultId ? "CONTINUE" : live ? "MAKE YOUR MOMENT" : "START THE MOMENT";
+  const cta = moment.myResultId ? "CONTINUE" : live ? "MAKE YOUR MOMENT" : started ? "WORLD IS FORMING." : busy ? "STARTING…" : "START THE MOMENT";
 
   const [spring, api] = useSpring(() => ({
     position: [0, -0.55, 0.25] as [number, number, number],
@@ -212,8 +189,16 @@ function GlassCard({ moment }: { moment: MomentData }) {
     });
   });
 
-  const activate = () => {
-    if (moment.myResultId || live) router.push(`/moment/${moment.id}`);
+  const activate = async () => {
+    if (busy || started) return;
+    if (moment.myResultId || live) {
+      router.push(`/moment/${moment.id}`);
+      return;
+    }
+    setBusy(true);
+    const result = await startTodayMoment(moment.id);
+    setBusy(false);
+    if (result.success) setStarted(true);
   };
 
   return (
@@ -223,70 +208,27 @@ function GlassCard({ moment }: { moment: MomentData }) {
       scale={spring.scale}
       onPointerOver={(event) => { event.stopPropagation(); setHovered(true); document.body.style.cursor = "pointer"; }}
       onPointerOut={() => { setHovered(false); document.body.style.cursor = ""; }}
-      onClick={(event) => { event.stopPropagation(); activate(); }}
+      onClick={(event) => { event.stopPropagation(); void activate(); }}
     >
       <RoundedBox args={[4.95, 3.9, 0.34]} radius={0.22} smoothness={6}>
-        <meshPhysicalMaterial
-          color="#fffaf1"
-          transmission={0.95}
-          roughness={0.1}
-          thickness={2}
-          ior={1.5}
-          metalness={0.02}
-          clearcoat={1}
-          clearcoatRoughness={0.08}
-          transparent
-          opacity={0.83}
-        />
+        <meshPhysicalMaterial color="#fffaf1" transmission={0.95} roughness={0.1} thickness={2} ior={1.5} metalness={0.02} clearcoat={1} clearcoatRoughness={0.08} transparent opacity={0.83} />
       </RoundedBox>
-
       <mesh position={[0, 1.48, 0.21]}>
         <planeGeometry args={[3.65, 0.018]} />
         <meshBasicMaterial color="#ef6b35" transparent opacity={0.8} />
       </mesh>
-
-      <Text
-        position={[-1.92, 1.5, 0.22]}
-        fontSize={0.13}
-        anchorX="left"
-        anchorY="middle"
-        letterSpacing={0.12}
-        color="#ef6b35"
-      >
+      <Text position={[-1.92, 1.5, 0.22]} fontSize={0.13} anchorX="left" anchorY="middle" letterSpacing={0.12} color="#ef6b35">
         TODAY&apos;S MOMENT
       </Text>
-
-      <Text
-        position={[-1.92, 0.74, 0.22]}
-        maxWidth={3.8}
-        fontSize={0.37}
-        lineHeight={1.05}
-        letterSpacing={-0.025}
-        anchorX="left"
-        anchorY="top"
-        color="#171614"
-      >
+      <Text position={[-1.92, 0.74, 0.22]} maxWidth={3.8} fontSize={0.37} lineHeight={1.05} letterSpacing={-0.025} anchorX="left" anchorY="top" color="#171614">
         {moment.prompt}
       </Text>
-
-      <Text
-        position={[-1.92, -0.63, 0.22]}
-        fontSize={0.145}
-        anchorX="left"
-        anchorY="middle"
-        color="#777269"
-      >
+      <Text position={[-1.92, -0.63, 0.22]} fontSize={0.145} anchorX="left" anchorY="middle" color="#777269">
         {moment.participantCount.toLocaleString()} PEOPLE ARE IN THIS MOMENT
       </Text>
-
       <group position={[0, -1.25, 0.24]}>
         <RoundedBox args={[4.02, 0.68, 0.12]} radius={0.13} smoothness={5}>
-          <meshPhysicalMaterial
-            color="#171614"
-            roughness={0.2}
-            metalness={0.05}
-            clearcoat={1}
-          />
+          <meshPhysicalMaterial color="#171614" roughness={0.2} metalness={0.05} clearcoat={1} />
         </RoundedBox>
         <Text position={[0, 0, 0.08]} fontSize={0.17} anchorX="center" anchorY="middle" color="#fffaf1" letterSpacing={0.05}>
           {cta}
@@ -299,10 +241,12 @@ function GlassCard({ moment }: { moment: MomentData }) {
 function Scene({ moment }: { moment: MomentData }) {
   const [reducedMotion, setReducedMotion] = useState(false);
 
-  useMemo(() => {
-    if (typeof window === "undefined") return;
+  useEffect(() => {
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReducedMotion(query.matches);
+    const update = () => setReducedMotion(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
   }, []);
 
   return (
@@ -327,18 +271,12 @@ function Scene({ moment }: { moment: MomentData }) {
 export function MomentPhysicsScene({ moment }: { moment: MomentData }) {
   return (
     <section className="fixed inset-0 z-0 h-[100dvh] w-full overflow-hidden bg-[#f6f1e8]" aria-label="MOMENT interactive space">
-      <Canvas
-        dpr={[1, 1.7]}
-        camera={{ position: [0, 0, 6.5], fov: 42, near: 0.1, far: 100 }}
-        gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
-        frameloop="always"
-      >
+      <Canvas dpr={[1, 1.7]} camera={{ position: [0, 0, 6.5], fov: 42, near: 0.1, far: 100 }} gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }} frameloop="always">
         <Scene moment={moment} />
       </Canvas>
       <div className="pointer-events-none absolute left-5 top-5 z-10 text-[10px] font-black uppercase tracking-[0.24em] text-black/45 sm:left-8 sm:top-8">
         MOMENT / 03
       </div>
-      <Html center style={{ display: "none" }} />
     </section>
   );
 }
