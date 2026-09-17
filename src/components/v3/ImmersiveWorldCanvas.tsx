@@ -7,14 +7,14 @@ import { useMemo, useRef } from "react";
 
 function WorldObject({ active }: { active: boolean }) {
   const group = useRef<THREE.Group>(null);
-  const materialRef = useRef<THREE.MeshPhysicalMaterial>(null);
   const pointer = useRef(new THREE.Vector2());
   const target = useRef(new THREE.Vector3());
   const current = useRef(new THREE.Vector3());
+  const scaleTarget = useRef(new THREE.Vector3(1, 1, 1));
 
-  const points = useMemo(() => {
-    const geometry = new THREE.IcosahedronGeometry(1.18, 4);
-    const position = geometry.attributes.position;
+  const geometry = useMemo(() => {
+    const next = new THREE.IcosahedronGeometry(1.18, 4);
+    const position = next.attributes.position;
     const data = new Float32Array(position.count * 3);
     for (let i = 0; i < position.count; i += 1) {
       const x = position.getX(i);
@@ -25,9 +25,9 @@ function WorldObject({ active }: { active: boolean }) {
       data[i * 3 + 1] = y * wave;
       data[i * 3 + 2] = z * wave;
     }
-    geometry.setAttribute("position", new THREE.BufferAttribute(data, 3));
-    geometry.computeVertexNormals();
-    return geometry;
+    next.setAttribute("position", new THREE.BufferAttribute(data, 3));
+    next.computeVertexNormals();
+    return next;
   }, []);
 
   useFrame(({ pointer: p, clock }) => {
@@ -38,21 +38,16 @@ function WorldObject({ active }: { active: boolean }) {
     if (group.current) {
       group.current.rotation.x = current.current.x + Math.sin(clock.elapsedTime * 0.22) * 0.035;
       group.current.rotation.y = current.current.y + clock.elapsedTime * 0.08;
-      const s = active ? 1.2 : 1;
-      group.current.scale.lerp(new THREE.Vector3(s, s, s), 0.07);
-    }
-
-    if (materialRef.current) {
-      materialRef.current.roughness = 0.12 + Math.sin(clock.elapsedTime * 0.35) * 0.025;
-      materialRef.current.thickness = 0.8 + Math.sin(clock.elapsedTime * 0.3) * 0.12;
+      const size = active ? 1.2 : 1;
+      scaleTarget.current.set(size, size, size);
+      group.current.scale.lerp(scaleTarget.current, 0.07);
     }
   });
 
   return (
     <group ref={group}>
-      <mesh geometry={points}>
+      <mesh geometry={geometry}>
         <MeshTransmissionMaterial
-          ref={materialRef}
           backside
           samples={6}
           resolution={512}
@@ -97,14 +92,12 @@ function CameraRig() {
 
 export function ImmersiveWorldCanvas({ active = false }: { active?: boolean }) {
   return (
-    <div className="pointer-events-none absolute inset-0 z-[15]" aria-hidden>
+    <div className="absolute inset-0 z-[15]" aria-hidden>
       <Canvas
         camera={{ position: [0, 0, 4.4], fov: 34 }}
         dpr={[1, 1.6]}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-        onCreated={({ gl }) => {
-          gl.setClearColor(0x000000, 0);
-        }}
+        onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}
       >
         <ambientLight intensity={1.15} />
         <directionalLight position={[3, 4, 5]} intensity={3.2} color="#fff9ed" />
