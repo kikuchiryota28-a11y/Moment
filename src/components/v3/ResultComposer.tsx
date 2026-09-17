@@ -12,6 +12,8 @@ const TYPES: { value: ResultType; label: string }[] = [
   { value: "combination", label: "COMBINE" },
 ];
 
+const glassInput = "border border-white/50 bg-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,.7)] backdrop-blur-md placeholder:text-[#777269]/75 focus:border-[#171614]/30 focus:bg-white/55 focus:outline-none";
+
 export function ResultComposer({ dailyMomentId }: { dailyMomentId: string }) {
   const [type, setType] = useState<ResultType>("text");
   const [text, setText] = useState("");
@@ -61,39 +63,39 @@ export function ResultComposer({ dailyMomentId }: { dailyMomentId: string }) {
   const valid = type === "text" ? Boolean(text.trim()) : type === "choice" ? Boolean(choice) : Boolean(media) && (type !== "combination" || Boolean(text.trim()));
 
   return (
-    <div className="rounded-[28px] border border-[#ded8ce] bg-white/70 p-5 sm:p-7">
+    <div className="rounded-[32px] border border-white/60 bg-white/60 p-5 shadow-[0_24px_80px_rgba(83,65,45,.12),inset_0_1px_0_rgba(255,255,255,.9)] backdrop-blur-xl sm:p-7">
       <p className="text-xs font-black uppercase tracking-[.18em] text-[#ef6b35]">Your answer</p>
       <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Answer format">
         {TYPES.map(({ value, label }) => (
-          <button key={value} type="button" onClick={() => { setType(value); setMessage(""); }} aria-selected={type === value} className={`rounded-full border px-4 py-2 text-xs font-black ${type === value ? "border-[#171614] bg-[#171614] text-white" : "border-[#ded8ce] bg-white"}`}>
+          <button key={value} type="button" onClick={() => { setType(value); setMessage(""); }} aria-selected={type === value} className={`rounded-full border px-4 py-2 text-xs font-black transition ${type === value ? "border-[#171614] bg-[#171614] text-white shadow-lg shadow-black/10" : "border-white/60 bg-white/35 text-[#171614] backdrop-blur-md hover:bg-white/60"}`}>
             {label}
           </button>
         ))}
       </div>
 
       {(type === "text" || type === "combination") && (
-        <textarea value={text} onChange={e => setText(e.target.value)} maxLength={2000} placeholder="What did you find?" className="mt-4 min-h-32 w-full rounded-2xl border border-[#ded8ce] bg-white p-4 outline-none" />
+        <textarea value={text} onChange={e => setText(e.target.value)} maxLength={2000} placeholder="What did you find?" className={`mt-4 min-h-32 w-full rounded-2xl p-4 ${glassInput}`} />
       )}
 
       {type === "choice" && (
         <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
           {["Something ordinary", "Something surprising", "Something beautiful", "Something strange"].map(x => (
-            <button key={x} type="button" onClick={() => setChoice(x)} aria-pressed={choice === x} className={`rounded-2xl border p-4 text-left text-sm font-bold ${choice === x ? "border-[#171614] bg-[#f1ece3]" : "border-[#ded8ce] bg-white"}`}>{x}</button>
+            <button key={x} type="button" onClick={() => setChoice(x)} aria-pressed={choice === x} className={`rounded-2xl border p-4 text-left text-sm font-bold transition ${choice === x ? "border-[#171614]/30 bg-[#f1ece3]/75 shadow-inner" : "border-white/60 bg-white/35 backdrop-blur-md hover:bg-white/60"}`}>{x}</button>
           ))}
         </div>
       )}
 
       {needsMedia && (
         <div className="mt-4">
-          <label className="flex cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-[#cfc7bb] p-8 text-center text-sm font-bold">
+          <label className="flex cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-white/70 bg-white/25 p-8 text-center text-sm font-bold backdrop-blur-md transition hover:bg-white/45">
             {media ? "Media ready — choose another" : type === "video" ? "Bring back a short video" : "Bring back a photo"}
             <input type="file" accept={type === "video" ? "video/*" : "image/*"} className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) void upload(f); }} />
           </label>
         </div>
       )}
 
-      <input value={why} onChange={e => setWhy(e.target.value)} maxLength={500} placeholder="Optional: why this one?" className="mt-3 w-full rounded-2xl border border-[#ded8ce] bg-white p-4 outline-none" />
-      <button type="button" onClick={() => void submit()} disabled={busy || !valid} className="mt-4 w-full rounded-2xl bg-[#171614] px-5 py-4 text-sm font-black text-white disabled:opacity-40">
+      <input value={why} onChange={e => setWhy(e.target.value)} maxLength={500} placeholder="Optional: why this one?" className={`mt-3 w-full rounded-2xl p-4 ${glassInput}`} />
+      <button type="button" onClick={() => void submit()} disabled={busy || !valid} className="mt-4 w-full rounded-2xl bg-[#171614] px-5 py-4 text-sm font-black text-white shadow-[0_14px_35px_rgba(23,22,20,.18)] transition hover:-translate-y-0.5 disabled:opacity-40 disabled:hover:translate-y-0">
         {busy ? "BRINGING IT BACK…" : "BRING IT BACK"}
       </button>
       {message && <p role="status" className="mt-3 text-sm font-bold">{message}</p>}
