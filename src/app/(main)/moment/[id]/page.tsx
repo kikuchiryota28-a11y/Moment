@@ -3,4 +3,30 @@ import { notFound } from "next/navigation";
 import { getTodayMoment, getResults } from "@/lib/db/v3";
 import { StartMomentButton } from "@/components/v3/StartMomentButton";
 import { ResultComposer } from "@/components/v3/ResultComposer";
-export default async function MomentDetailPage({params}:{params:Promise<{id:string}>}){const{id}=await params;let moment;try{moment=await getTodayMoment()}catch{return notFound()}if(moment.id!==id)return notFound();const results=await getResults(id);const live=["FIRST_MOVER","LIVE","ENDING"].includes(moment.status);return <main className="py-6 sm:py-10"><Link href="/" className="text-sm font-bold">← MOMENT</Link><section className="mt-10 max-w-3xl"><p className="text-xs font-black uppercase tracking-[.2em] text-[#ef6b35]">Today&apos;s Moment</p><h1 className="mt-5 text-4xl font-black leading-tight tracking-[-.05em] sm:text-6xl">{moment.prompt}</h1><p className="mt-5 text-sm text-[#777269]">{moment.participantCount.toLocaleString()} people are in this Moment.</p>{!live&&<div className="mt-8"><StartMomentButton id={id}/></div>}{live&&!moment.myResultId&&<div className="mt-8"><ResultComposer dailyMomentId={id}/></div>}{moment.myResultId&&<div className="mt-8 rounded-[28px] bg-[#f1ece3] p-6"><p className="text-xs font-black uppercase tracking-[.18em]">YOU MADE A MOMENT.</p><Link href={`/moment/${id}/reveal`} className="mt-4 inline-block rounded-2xl bg-[#171614] px-5 py-4 text-sm font-black text-white">SEE WHAT THE WORLD FOUND</Link></div>}{results.length>0&&<Link href={`/moment/${id}/reveal`} className="mt-5 block text-center text-sm font-black underline">WORLD REVEAL →</Link>}</section></main>}
+import { MomentDetailMotion } from "@/components/v3/MomentDetailMotion";
+
+export default async function MomentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  let moment;
+  try { moment = await getTodayMoment(); } catch { return notFound(); }
+  if (moment.id !== id) return notFound();
+  const results = await getResults(id);
+  const live = ["FIRST_MOVER", "LIVE", "ENDING"].includes(moment.status);
+
+  return (
+    <MomentDetailMotion prompt={moment.prompt} participantCount={moment.participantCount} live={live}>
+      {!live && <div className="mb-5"><StartMomentButton id={id} /></div>}
+      {live && !moment.myResultId && <ResultComposer dailyMomentId={id} />}
+      {moment.myResultId && (
+        <section className="mt-5 overflow-hidden rounded-[30px] border border-[var(--line)] bg-[var(--ink)] p-7 text-[var(--bg)] sm:p-9">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--bg)]/55">YOU MADE A MOMENT.</p>
+          <p className="mt-4 max-w-xl text-2xl font-black tracking-[-0.04em] sm:text-3xl">Now see what the world found.</p>
+          <Link href={`/moment/${id}/reveal`} className="mt-7 inline-flex rounded-full bg-[var(--bg)] px-6 py-4 text-xs font-black tracking-[0.08em] text-[var(--ink)] transition-transform active:scale-[0.98]">SEE THE WORLD →</Link>
+        </section>
+      )}
+      {results.length > 0 && !moment.myResultId && (
+        <Link href={`/moment/${id}/reveal`} className="mt-7 block text-center text-[10px] font-black uppercase tracking-[0.18em] text-[var(--muted)] transition-opacity hover:opacity-60">WORLD REVEAL →</Link>
+      )}
+    </MomentDetailMotion>
+  );
+}
