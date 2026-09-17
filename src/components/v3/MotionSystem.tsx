@@ -1,0 +1,17 @@
+"use client";
+
+import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { type ReactNode, useRef } from "react";
+
+export function AmbientBackground({ intensity = 1 }: { intensity?: number }) {
+  const reduce = useReducedMotion();
+  return <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"><motion.div className="absolute -left-1/4 top-[-20%] h-[70vh] w-[70vh] rounded-full bg-[radial-gradient(circle_at_center,var(--ambient-accent),transparent_68%)] blur-3xl" style={{ "--ambient-accent": `color-mix(in srgb, var(--accent) 14%, transparent)` } as React.CSSProperties} animate={reduce ? undefined : { x: [0, 32, -18, 0], y: [0, 18, 42, 0], scale: [1, 1.06, 0.98, 1], opacity: [0.45 * intensity, 0.62 * intensity, 0.42 * intensity, 0.45 * intensity] }} transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }} /><motion.div className="absolute bottom-[-28%] right-[-18%] h-[65vh] w-[65vh] rounded-full bg-[radial-gradient(circle_at_center,var(--ambient-warm),transparent_70%)] blur-3xl" style={{ "--ambient-warm": `color-mix(in srgb, var(--warm) 12%, transparent)` } as React.CSSProperties} animate={reduce ? undefined : { x: [0, -26, 14, 0], y: [0, -22, -8, 0], scale: [1, 0.97, 1.05, 1], opacity: [0.3 * intensity, 0.5 * intensity, 0.32 * intensity, 0.3 * intensity] }} transition={{ duration: 19, repeat: Infinity, ease: "easeInOut" }} /></div>;
+}
+
+export function ParallaxText({ children, className = "", distance = 10 }: { children: ReactNode; className?: string; distance?: number }) { const ref = useRef<HTMLDivElement>(null); const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] }); const y = useTransform(scrollYProgress, [0, 1], [-distance, distance]); return <motion.div ref={ref} style={{ y }} className={className}>{children}</motion.div>; }
+
+export function MotionCard({ children, className = "", interactive = true }: { children: ReactNode; className?: string; interactive?: boolean }) { const reduce = useReducedMotion(); return <motion.div className={className} whileHover={interactive && !reduce ? { scale: 1.012, rotateX: 0.7, rotateY: -0.7 } : undefined} whileTap={interactive && !reduce ? { scale: 0.985 } : undefined} transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.7 }} style={{ transformPerspective: 900 }}>{children}</motion.div>; }
+
+export function NumericTicker({ value, className = "" }: { value: number | string; className?: string }) { const reduce = useReducedMotion(); const text = String(value); return <span className={`inline-flex overflow-hidden align-baseline ${className}`} aria-live="polite"><AnimatePresence initial={false} mode="popLayout"><motion.span key={text} initial={reduce ? false : { y: "85%", opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={reduce ? undefined : { y: "-85%", opacity: 0 }} transition={{ duration: reduce ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }} className="inline-block">{text}</motion.span></AnimatePresence></span>; }
+
+export function RevealSequence({ children, className = "" }: { children: ReactNode; className?: string }) { const reduce = useReducedMotion(); return <motion.div initial={reduce ? false : { opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.55, ease: [0.22, 1, 0.36, 1] }} className={className}>{children}</motion.div>; }
