@@ -3,6 +3,7 @@
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import type { PointerEvent } from "react";
 import { startTodayMoment } from "@/actions/v3";
 
 type MomentData = {
@@ -62,7 +63,7 @@ export function MomentHero({ moment }: { moment: MomentData }) {
     }
   };
 
-  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
+  const handlePointerMove = (event: PointerEvent<HTMLElement>) => {
     if (reducedMotion) return;
     const rect = event.currentTarget.getBoundingClientRect();
     px.set((event.clientX - rect.left) / rect.width - 0.5);
