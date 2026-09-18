@@ -1,9 +1,8 @@
 "use client";
 
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import type { PointerEvent } from "react";
+import { useState } from "react";
 import { startTodayMoment } from "@/actions/v3";
 
 type MomentData = {
@@ -16,58 +15,53 @@ type MomentData = {
 
 type HomeState = "empty" | "error";
 
-const spring = { type: "spring", stiffness: 120, damping: 22, mass: 1 } as const;
+type MomentState = "prepared" | "active" | "closed" | "recorded";
+
+function getMomentState(moment: MomentData): MomentState {
+  if (moment.myResultId) return "recorded";
+  if (["ENDED", "ARCHIVE"].includes(moment.status)) return "closed";
+  if (["FIRST_MOVER", "LIVE", "ENDING"].includes(moment.status)) return "active";
+  return "prepared";
+}
+
+function getActionLabel(state: MomentState, busy: boolean) {
+  if (busy) return "Opening...";
+  if (state === "recorded") return "See your Moment";
+  if (state === "closed") return "See the world";
+  if (state === "active") return "Try this";
+  return "Start the Moment";
+}
+
+function getStateLabel(state: MomentState) {
+  if (state === "recorded") return "Your answer is in the world";
+  if (state === "closed") return "This Moment has closed";
+  if (state === "active") return "The Moment is live";
+  return "Waiting for its first answer";
+}
 
 export function MomentHero({ moment, state }: { moment?: MomentData; state?: HomeState }) {
   const router = useRouter();
+  const prefersReducedMotion = useReducedMotion();
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [reducedMotion, setReducedMotion] = useState(false);
 
-  const px = useMotionValue(0);
-  const py = useMotionValue(0);
-  const sphereX = useSpring(useTransform(px, [-0.5, 0.5], [-16, 16]), spring);
-  const sphereY = useSpring(useTransform(py, [-0.5, 0.5], [-12, 12]), spring);
-  const cardX = useSpring(useTransform(px, [-0.5, 0.5], [-7, 7]), spring);
-  const cardY = useSpring(useTransform(py, [-0.5, 0.5], [-5, 5]), spring);
-  const sphereRotate = useSpring(useTransform(px, [-0.5, 0.5], [-2, 2]), spring);
-
-  useEffect(() => {
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReducedMotion(query.matches);
-    update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
-  }, []);
-
-  const live = moment ? ["FIRST_MOVER", "LIVE", "ENDING"].includes(moment.status) : false;
-  const ended = moment?.status === "ENDED" || moment?.status === "ARCHIVE";
-
-  const cta = useMemo(() => {
-    if (!moment) return state === "empty" ? "CHECK BACK SOON" : "TRY AGAIN";
-    if (busy) return "STARTING…";
-    if (moment.myResultId) return "SEE YOUR MOMENT";
-    if (ended) return "SEE THE WORLD";
-    if (live) return "TRY THIS";
-    return "START THE MOMENT";
-  }, [busy, ended, live, moment, state]);
+  const momentState = moment ? getMomentState(moment) : null;
+  const actionLabel = momentState ? getActionLabel(momentState, busy) : state === "empty" ? "Come back tomorrow" : "Try again";
 
   const activate = async () => {
-    if (busy || !moment) {
+    if (!moment || busy || state === "empty") {
       if (state === "error") window.location.reload();
       return;
     }
 
     setActionError(null);
-    if (moment.myResultId) {
+
+    if (momentState === "recorded" || momentState === "closed") {
       router.push(`/moment/${moment.id}/reveal`);
       return;
     }
-    if (ended) {
-      router.push(`/moment/${moment.id}/reveal`);
-      return;
-    }
-    if (live) {
+
+    if (momentState === "active") {
       router.push(`/moment/${moment.id}`);
       return;
     }
@@ -81,134 +75,98 @@ export function MomentHero({ moment, state }: { moment?: MomentData; state?: Hom
         setActionError(result.error);
       }
     } catch {
-      setActionError("The Moment could not be started. Try again.");
+      setActionError("The Moment could not be opened. Try again.");
     } finally {
       setBusy(false);
     }
   };
 
-  const handlePointerMove = (event: PointerEvent<HTMLElement>) => {
-    if (reducedMotion) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    px.set((event.clientX - rect.left) / rect.width - 0.5);
-    py.set((event.clientY - rect.top) / rect.height - 0.5);
-  };
-
   return (
-    <section
-      className="relative h-[100dvh] w-full overflow-hidden bg-[#eee9df] text-[#181715]"
-      onPointerMove={handlePointerMove}
-      onPointerLeave={() => {
-        px.set(0);
-        py.set(0);
-      }}
-    >
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_44%,#faf7f0_0%,#eee9df_48%,#dcd5c9_100%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_100%,rgba(24,23,21,.08),transparent_48%)]" />
-        <div className="absolute -left-[18vw] -top-[18vw] h-[55vw] w-[55vw] rounded-full bg-white/55 blur-[110px]" />
-        <div className="absolute -bottom-[25vw] -right-[15vw] h-[60vw] w-[60vw] rounded-full bg-[#d8c8b4]/35 blur-[120px]" />
-        <div className="moment-noise absolute inset-0 opacity-40" aria-hidden="true" />
+    <section className="relative isolate min-h-[100dvh] overflow-hidden bg-[#f3efe7] text-[#171614]">
+      <div className="absolute inset-0 -z-10 bg-[linear-gradient(115deg,rgba(255,255,255,.72),transparent_38%),linear-gradient(295deg,rgba(217,204,185,.36),transparent_46%)]" />
+      <div className="absolute inset-0 -z-10 opacity-40 [background-image:linear-gradient(rgba(23,22,20,.045)_1px,transparent_1px),linear-gradient(90deg,rgba(23,22,20,.045)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_bottom,black,transparent_88%)]" />
 
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-[min(68vw,46rem)] w-[min(68vw,46rem)] rounded-full border border-white/45 bg-white/15 shadow-[inset_30px_30px_70px_rgba(255,255,255,.35),inset_-35px_-45px_80px_rgba(50,42,33,.12)] backdrop-blur-[2px]" />
-        </div>
+      <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 py-6 sm:px-8 sm:py-8 lg:px-12">
+        <span className="text-[11px] font-black uppercase tracking-[0.26em]">MOMENT<span className="text-[#e86631]">.</span></span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-black/45">Daily / now</span>
+      </header>
 
-        <div className="absolute left-5 top-5 text-[10px] font-black uppercase tracking-[0.28em] text-black/55 sm:left-8 sm:top-7 lg:left-10">
-          MOMENT
-        </div>
+      <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-[1440px] flex-col px-5 pb-32 pt-28 sm:px-8 lg:grid lg:grid-cols-[minmax(150px,.6fr)_minmax(420px,1.8fr)_minmax(220px,.75fr)] lg:items-center lg:gap-10 lg:px-12 lg:pb-28 lg:pt-20">
+        <aside className="hidden self-center lg:block">
+          <div className="border-l border-black/15 pl-4">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-black/45">A daily invitation</p>
+            <p className="mt-4 max-w-[10rem] text-sm leading-6 text-black/60">One prompt. Something real to notice. An answer you make yourself.</p>
+          </div>
+        </aside>
 
-        <div className="absolute right-5 top-5 flex items-center gap-3 text-[9px] font-bold uppercase tracking-[0.18em] text-black/30 sm:right-8 sm:top-7 lg:right-10">
-          <span>DAILY</span>
-          <span className="h-px w-8 bg-black/15" />
-          <span>NOW</span>
-        </div>
-      </div>
+        <main className="flex flex-1 flex-col justify-center lg:flex-none">
+          <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[#e86631]">
+            <span className="h-px w-8 bg-[#e86631]" />
+            {moment ? "Today's Moment" : state === "empty" ? "Between Moments" : "Connection interrupted"}
+          </div>
 
-      <div className="absolute inset-0 z-10 flex items-center justify-center">
-        <motion.div
-          className="relative h-[min(62vh,620px)] w-[min(62vh,620px)] sm:h-[min(64vh,700px)] sm:w-[min(64vh,700px)]"
-          style={{ x: reducedMotion ? 0 : sphereX, y: reducedMotion ? 0 : sphereY, rotate: reducedMotion ? 0 : sphereRotate }}
-        >
           <motion.div
-            className="absolute inset-[8%] rounded-full"
-            animate={reducedMotion ? undefined : { scale: [1, 1.018, 1] }}
-            transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-            style={{
-              background:
-                "radial-gradient(circle at 34% 25%, rgba(255,255,255,.98) 0%, rgba(255,255,255,.72) 12%, rgba(238,225,207,.86) 32%, rgba(190,170,145,.76) 62%, rgba(116,99,79,.72) 100%)",
-              boxShadow:
-                "inset 45px 40px 85px rgba(255,255,255,.48), inset -55px -65px 100px rgba(50,42,33,.18), 0 55px 120px rgba(50,42,33,.16)",
-            }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="absolute inset-[7%] rounded-full border border-white/55 opacity-70" />
-            <div className="absolute left-[18%] top-[16%] h-[25%] w-[25%] rounded-full bg-white/50 blur-2xl" />
-            <div className="absolute right-[15%] bottom-[18%] h-[32%] w-[32%] rounded-full bg-[#ef6b35]/12 blur-3xl" />
+            <h1 className="mt-7 max-w-[10ch] text-[clamp(3.2rem,9vw,8.6rem)] font-medium leading-[0.86] tracking-[-0.075em] sm:max-w-[11ch] lg:mt-10">
+              {moment?.prompt ?? (state === "empty" ? "The next thing is still becoming." : "Today's Moment is out of reach.")}
+            </h1>
           </motion.div>
 
-          <div className="absolute -bottom-[1%] left-1/2 h-[12%] w-[55%] -translate-x-1/2 rounded-full bg-black/12 blur-3xl" />
-        </motion.div>
-      </div>
+          <div className="mt-10 flex max-w-[35rem] items-start gap-4 border-t border-black/15 pt-5 sm:mt-14 sm:gap-8">
+            <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#e86631]" aria-hidden="true" />
+            <p className="max-w-[28rem] text-sm leading-6 text-black/65 sm:text-base sm:leading-7">
+              {moment
+                ? "Take this prompt with you. The experience starts when you leave this screen."
+                : state === "empty"
+                  ? "There is no Moment to enter right now. Your next invitation will appear here."
+                  : "We could not reach the Moment. Reload the space and try again."}
+            </p>
+          </div>
+        </main>
 
-      <motion.div
-        className="absolute left-1/2 top-[53%] z-20 w-[min(89vw,570px)] -translate-x-1/2 -translate-y-1/2 sm:top-[55%] lg:left-[54%] lg:top-[58%] lg:w-[min(42vw,590px)]"
-        style={{ x: reducedMotion ? 0 : cardX, y: reducedMotion ? 0 : cardY }}
-        initial={reducedMotion ? false : { opacity: 0, y: 20, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ ...spring, delay: 0.15 }}
-      >
-        <div className="relative border-y border-white/65 bg-white/[0.28] px-5 py-6 shadow-[0_35px_100px_rgba(38,31,23,.15),0_8px_25px_rgba(38,31,23,.08)] backdrop-blur-2xl sm:px-8 sm:py-8">
-            <div className="flex items-start justify-between gap-5">
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-[0.24em] text-[#ef6b35]">
-                  {moment ? "TODAY'S MOMENT" : state === "empty" ? "MOMENT IS RESTING" : "MOMENT IS UNAVAILABLE"}
-                </p>
-                <h1 className="mt-3 max-w-[16ch] text-[clamp(1.8rem,3.5vw,2.8rem)] font-semibold leading-[0.98] tracking-[-0.045em]">
-                  {moment?.prompt ?? (state === "empty" ? "The next Moment will meet you here." : "We could not reach today's Moment.")}
-                </h1>
-              </div>
-              <span className="pt-1 text-[9px] font-bold uppercase tracking-[0.16em] text-black/30">{moment ? "01" : "—"}</span>
-            </div>
-
-            <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-              <div className="max-w-[21rem] space-y-2">
-                <p className="text-[12px] leading-5 text-black/60">
-                  {moment
-                    ? live
-                      ? "Step into your surroundings and bring one answer back."
-                      : ended
-                        ? "This Moment has closed. See what the world found."
-                        : "Find one small way to notice more than you usually do." 
-                    : state === "empty"
-                      ? "There is nothing to choose from right now."
-                      : "Refresh the space and try again."}
-                </p>
-                {moment && (
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-black/35">
-                    {moment.participantCount.toLocaleString()} {moment.participantCount === 1 ? "person" : "people"} in this Moment
-                  </p>
-                )}
-              </div>
+        <aside className="mt-12 lg:mt-0 lg:self-center">
+          {moment && momentState ? (
+            <div className="border-t border-black/15 pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-black/45">{getStateLabel(momentState)}</p>
+              <p className="mt-3 text-sm leading-6 text-black/60">
+                {moment.participantCount.toLocaleString()} {moment.participantCount === 1 ? "person" : "people"} are carrying this question today.
+              </p>
               <button
                 type="button"
                 onClick={() => void activate()}
-                disabled={busy || state === "empty"}
-                className="group flex h-12 shrink-0 items-center justify-center gap-4 rounded-[15px] bg-[#181715] px-5 text-[9px] font-black uppercase tracking-[0.16em] text-[#f7f2e9] shadow-[0_12px_25px_rgba(24,23,21,.2)] transition-transform duration-300 hover:-translate-y-0.5 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-65"
+                disabled={busy}
+                className="mt-8 flex min-h-14 w-full items-center justify-between gap-5 border border-[#171614] bg-[#171614] px-5 py-4 text-left text-sm font-bold text-[#f8f3ea] transition-[background-color,color,transform] duration-200 hover:-translate-y-0.5 hover:bg-[#e86631] hover:text-white active:translate-y-0 disabled:cursor-wait disabled:opacity-60 lg:max-w-[250px]"
               >
-                <span>{cta}</span>
-                <span aria-hidden="true" className="text-base transition-transform duration-300 group-hover:translate-x-1">↗</span>
+                <span>{actionLabel}</span>
+                <span aria-hidden="true" className="text-lg font-normal">↗</span>
+              </button>
+              {actionError && <p role="alert" className="mt-3 text-xs font-bold leading-5 text-[#a13f2b]">{actionError}</p>}
+            </div>
+          ) : (
+            <div className="border-t border-black/15 pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-black/45">{state === "empty" ? "No action needed" : "Something went wrong"}</p>
+              <button
+                type="button"
+                onClick={() => void activate()}
+                disabled={state === "empty"}
+                className="mt-8 flex min-h-14 w-full items-center justify-between gap-5 border border-[#171614] bg-transparent px-5 py-4 text-left text-sm font-bold transition-[background-color,color,transform] duration-200 hover:-translate-y-0.5 hover:bg-[#171614] hover:text-[#f8f3ea] disabled:cursor-not-allowed disabled:opacity-45 lg:max-w-[250px]"
+              >
+                <span>{actionLabel}</span>
+                <span aria-hidden="true" className="text-lg font-normal">↗</span>
               </button>
             </div>
-            {actionError && <p role="alert" className="mt-4 text-xs font-bold text-[#a13f2b]">{actionError}</p>}
-        </div>
-      </motion.div>
+          )}
+        </aside>
+      </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-[94px] z-30 hidden items-center justify-center md:flex">
-        <div className="flex items-center gap-3 text-[8px] font-bold uppercase tracking-[0.22em] text-black/25">
-          <span className="h-px w-10 bg-black/12" />
-          {moment?.myResultId ? "MOMENT RECORDED" : ended ? "THE WORLD IS WAITING" : "STEP OUTSIDE"}
-          <span className="h-px w-10 bg-black/12" />
-        </div>
+      <div className="absolute bottom-28 left-5 font-mono text-[9px] uppercase tracking-[0.18em] text-black/35 sm:left-8 lg:bottom-10 lg:left-12">
+        Discover / Decide / Try
+      </div>
+      <div className="absolute bottom-28 right-5 font-mono text-[9px] uppercase tracking-[0.18em] text-black/35 sm:right-8 lg:bottom-10 lg:right-12">
+        {moment?.myResultId ? "Recorded" : "Make something of today"}
       </div>
     </section>
   );
