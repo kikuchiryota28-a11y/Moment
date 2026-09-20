@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useActionState } from "react";
 import { signIn } from "@/actions/auth";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -15,18 +14,6 @@ export default function LoginPage() {
   const router = useRouter();
   const { addToast } = useToast();
 
-  const [_, formAction] = useActionState(async (prev: any, formData: FormData) => {
-    "use server";
-    const email = String(formData.get("email") ?? "");
-    const password = String(formData.get("password") ?? "");
-    if (!email || !password) return { success: false, error: "Email and password are required." };
-
-    const sb = (await import("@/lib/supabase/server")).createClient();
-    const { error } = await (await sb).auth.signInWithPassword({ email, password });
-    if (error) return { success: false, error: error.message };
-    return { success: true };
-  }, { success: false, error: "" });
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -37,7 +24,7 @@ export default function LoginPage() {
     const fd = new FormData();
     fd.set("email", email);
     fd.set("password", password);
-    const result = await formAction(fd);
+    const result = await signIn(fd);
     setBusy(false);
     if (result.success) {
       router.push("/");
