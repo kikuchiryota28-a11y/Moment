@@ -1,5 +1,20 @@
 "use client";
-import {useEffect} from "react"; import Link from "next/link"; import {motion,useReducedMotion} from "framer-motion"; import {StartMomentButton} from "@/components/v3/StartMomentButton"; import {ResultComposer} from "@/components/v3/ResultComposer"; import {useCanvas3D} from "@/components/layout/CanvasProvider";
-type MomentPhase="enter"|"action"|"result"|"branch"; interface MomentData{id:string;prompt:string;participantCount:number;status:string;myResultId:string|null}
-export function MomentDetailPageClient({initialMoment,initialResults,initialPhase}:{initialMoment:MomentData;initialResults:any[];initialPhase:MomentPhase}){const{setPhase,setMomentData,setIntensity}=useCanvas3D();const reduced=useReducedMotion();useEffect(()=>{setPhase(initialPhase);setMomentData(initialMoment);setIntensity(initialPhase==="enter"||initialPhase==="action"?1:.15)},[initialMoment,initialPhase,setPhase,setMomentData,setIntensity]);
-return <main className="moment-container relative flex min-h-[100dvh] flex-col py-6 pb-28 md:py-8"><Link href="/" className="mb-10 inline-flex w-fit text-[10px] font-bold tracking-[.16em] text-[var(--color-muted-ink)] hover:text-[var(--color-ink)]">← BACK</Link><div className="flex flex-1 items-center"><section className="w-full"><div className="flex items-center gap-3 text-[10px] font-bold tracking-[.16em] text-[var(--color-accent)]"><span className="size-2 rounded-full bg-current animate-pulse"/>{initialPhase==="enter"?"YOU ARE EARLY":"THE MOMENT IS LIVE"}</div><motion.h1 initial={reduced?false:{opacity:0,y:24}} animate={{opacity:1,y:0}} transition={{duration:.6,ease:[.16,1,.3,1]}} className="moment-display mt-6 max-w-[10ch] text-[clamp(4rem,9vw,9rem)]">{initialMoment.prompt}</motion.h1>{initialPhase==="enter"&&<div className="mt-12 flex flex-col gap-4"><StartMomentButton id={initialMoment.id}/><p className="text-xs text-[var(--color-muted-ink)]">{initialMoment.participantCount.toLocaleString()} people are waiting for what happens next.</p></div>}{initialPhase==="action"&&<div className="mt-12"><ResultComposer dailyMomentId={initialMoment.id}/></div>}{initialPhase==="result"&&<Link href={`/moment/${initialMoment.id}/reveal`} className="mt-12 inline-flex rounded-full bg-[var(--color-ink)] px-7 py-4 text-sm font-bold text-white">REVEAL MY WORLD →</Link>}</section></div><div className="border-t border-[var(--color-line)]/70 pt-4 text-[10px] font-bold tracking-[.14em] text-[var(--color-muted-ink)]">ENTER → EXPERIENCE → LEAVE A TRACE</div></main>}
+import {useEffect} from "react";
+import Link from "next/link";
+import {StartMomentButton} from "@/components/v3/StartMomentButton";
+import {ResultComposer} from "@/components/v3/ResultComposer";
+import {useCanvas3D} from "@/components/layout/CanvasProvider";
+type MomentPhase="enter"|"action"|"result"|"branch";
+interface MomentData{id:string;prompt:string;participantCount:number;status:string;myResultId:string|null}
+export function MomentDetailPageClient({initialMoment,initialResults,initialPhase}:{initialMoment:MomentData;initialResults:unknown[];initialPhase:MomentPhase}){
+ const{setPhase,setMomentData,setIntensity}=useCanvas3D();
+ useEffect(()=>{setPhase(initialPhase);setMomentData(initialMoment);setIntensity(initialPhase==="enter"||initialPhase==="action"?1:.15)},[initialMoment,initialPhase,setPhase,setMomentData,setIntensity]);
+ return <main className="moment-container relative flex min-h-[100dvh] flex-col py-6 pb-24">
+  <Link href="/" className="mb-8 inline-flex w-fit text-sm text-[var(--color-muted-ink)] hover:text-[var(--color-ink)]">← Back</Link>
+  <div className="flex flex-1 items-center"><section className="w-full max-w-4xl">
+   {initialPhase==="enter"&&<><p className="moment-eyebrow text-[var(--color-accent)]">Ready</p><h1 className="moment-display mt-4 max-w-[12ch] text-[clamp(3rem,7vw,7rem)]">{initialMoment.prompt}</h1><div className="mt-8"><StartMomentButton id={initialMoment.id}/></div></>}
+   {initialPhase==="action"&&<ResultComposer dailyMomentId={initialMoment.id}/>}
+   {initialPhase==="result"&&<Link href={"/moment/"+initialMoment.id+"/reveal"} className="mt-8 inline-flex min-h-11 items-center rounded-[12px] bg-[var(--color-ink)] px-5 text-sm font-semibold text-white hover:opacity-90">View result</Link>}
+  </section></div>
+ </main>;
+}
