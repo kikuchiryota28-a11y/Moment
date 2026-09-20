@@ -5,15 +5,15 @@ import { getTodayMoment, getWorldArchive } from "@/lib/db/v3";
 export default async function WorldPage() {
   const [today, archive] = await Promise.all([getTodayMoment(), getWorldArchive()]);
   return (
-    <main className="moment-container py-8 pb-28 md:py-12 md:pb-16">
-      <header className="pb-8">
+    <main className="moment-container py-8 pb-28 md:py-10">
+      <header className="pt-10 pb-8 md:pt-16">
         <p className="moment-eyebrow text-[var(--color-accent)]">World</p>
-        <h1 className="moment-display mt-3 max-w-2xl text-5xl md:text-7xl">What happened?</h1>
+        <h1 className="moment-display mt-3 max-w-2xl text-5xl md:text-7xl">What is happening?</h1>
       </header>
 
-      <section className="border-y border-[var(--color-line)] py-8 md:py-12">
+      <section className="mt-16 overflow-hidden rounded-[32px] bg-[var(--color-ink)] py-8 text-white shadow-[var(--shadow-deep)] md:mt-20 md:py-12 md:px-4">
         <p className="moment-eyebrow text-[var(--color-muted-ink)]">Today</p>
-        <Link href={`/moment/${today.id}/reveal`} className="group mt-4 block max-w-4xl">
+        <Link href={`/moment/${today.id}/reveal`} className="group block max-w-4xl px-4 md:px-6">
           <h2 className="moment-display text-4xl transition-colors group-hover:text-[var(--color-accent)] md:text-6xl">{today.prompt}</h2>
           <div className="mt-6 flex items-center gap-3 text-sm text-[var(--color-muted-ink)]">
             <span>{today.participantCount.toLocaleString()} entered</span>
