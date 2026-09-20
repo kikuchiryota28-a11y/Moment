@@ -23,7 +23,7 @@ export function MomentOwnerMenu({ momentId }: { momentId: string }) {
         router.replace("/");
         return;
       }
-      setError(result.error);
+      setError(result.error ?? "");
     });
   }
 

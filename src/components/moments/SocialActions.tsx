@@ -27,7 +27,7 @@ export function SocialActions({ momentId, liked, likeCount }: { momentId: string
         return;
       }
       setOptimisticLike(baseLike);
-      setError(result.error);
+      setError(result.error ?? "");
     });
   }
 
@@ -43,7 +43,7 @@ export function SocialActions({ momentId, liked, likeCount }: { momentId: string
         setComment("");
         return;
       }
-      setError(result.error);
+      setError(result.error ?? "");
     });
   }
 

@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Surface";
 import type { ThemePreference, Visibility } from "@/types/database";
+import { isSuccess } from "@/lib/action-result";
 
 interface SettingsState {
   theme: ThemePreference;
@@ -86,6 +87,17 @@ export function SettingsPanel({ initial, email }: { initial: SettingsState; emai
     });
   }
 
+  function handleSignOut() {
+    startTransition(async () => {
+      const result = await signOut();
+      if (!result.success) {
+        addToast({ message: result.error, type: "error" });
+        return;
+      }
+      router.replace("/login");
+    });
+  }
+
   function removeAccount() {
     startTransition(async () => {
       const result = await deleteAccount();
@@ -142,11 +154,9 @@ export function SettingsPanel({ initial, email }: { initial: SettingsState; emai
         </Row>
 
         <Row label="Log out" description="End this session">
-          <form action={signOut}>
-            <Button variant="secondary" disabled={isPending} size="sm">
-              Log out
-            </Button>
-          </form>
+          <Button variant="secondary" onClick={handleSignOut} disabled={isPending} size="sm">
+            Log out
+          </Button>
         </Row>
 
         <Row label="Delete account" description="Permanently remove your MOMENT account">

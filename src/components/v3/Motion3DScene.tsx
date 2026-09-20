@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { useRouter } from "next/navigation";
 import { startTodayMoment } from "@/actions/v3";
+import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocessing";
 
 type MomentPhase = "discover" | "enter" | "action" | "result" | "branch";
 
@@ -288,11 +289,11 @@ function Scene({ moment, phase, intensity, reducedMotion, onActivate }: { moment
       <PointerField />
       <SculpturalType />
       {phase !== "result" && phase !== "branch" && <GlassCard moment={moment} phase={phase} onActivate={onActivate} />}
-      <effectComposer enabled={!reducedMotion && isActivePhase} multisampling={2}>
-        <bloom intensity={0.55 * fluidIntensity} luminanceThreshold={0.72} luminanceSmoothing={0.35} mipmapBlur />
-        <noise opacity={0.028 * fluidIntensity} />
-        <vignette eskil={false} offset={0.18} darkness={0.62} />
-      </effectComposer>
+      <EffectComposer enabled={!reducedMotion && isActivePhase} multisampling={2}>
+        <Bloom intensity={0.55 * fluidIntensity} luminanceThreshold={0.72} luminanceSmoothing={0.35} mipmapBlur />
+        <Noise opacity={0.028 * fluidIntensity} />
+        <Vignette eskil={false} offset={0.18} darkness={0.62} />
+      </EffectComposer>
     </>
   );
 }

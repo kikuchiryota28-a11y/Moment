@@ -1,12 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Canvas, extend } from "@react-three/fiber";
-import { EffectComposer, Bloom, Noise, Vignette } from "@react-three/postprocessing";
+import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 import { Motion3DScene } from "@/components/v3/Motion3DScene";
-
-extend({ EffectComposer, Bloom, Noise, Vignette });
 
 type MomentPhase = "discover" | "enter" | "action" | "result" | "branch";
 

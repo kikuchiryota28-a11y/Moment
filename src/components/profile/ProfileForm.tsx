@@ -33,7 +33,7 @@ export function ProfileForm({ profile }: Props) {
         setSaved(true); router.push(`/profile/${result.data.username}`);
         return;
       }
-      setError(result.error);
+      setError(result.error ?? "");
     });
   }
   function chooseAvatar(file: File | undefined) {
@@ -47,7 +47,7 @@ export function ProfileForm({ profile }: Props) {
         setAvatarUrl(result.data.avatarUrl);
         return;
       }
-      setAvatarUrl(profile.avatarUrl); setError(result.error);
+      setAvatarUrl(profile.avatarUrl); setError(result.error ?? "");
     });
   }
 

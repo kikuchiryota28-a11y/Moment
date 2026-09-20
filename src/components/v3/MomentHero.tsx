@@ -9,6 +9,7 @@ import { Badge, PhaseBadge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Surface";
 import { cn } from "@/lib/utils";
 import { useCanvas3D } from "@/components/layout/CanvasProvider";
+import { isSuccess } from "@/lib/action-result";
 
 type MomentData = {
   id: string;
@@ -86,10 +87,10 @@ export function MomentHero({ moment, state }: { moment?: MomentData; state?: Hom
     setBusy(true);
     try {
       const result = await startTodayMoment(moment.id);
-      if (result.success) {
+      if (isSuccess(result)) {
         router.push(`/moment/${moment.id}`);
       } else {
-        setActionError(result.error);
+        setActionError(result.error ?? null);
       }
     } catch {
       setActionError("The Moment could not be opened. Try again.");

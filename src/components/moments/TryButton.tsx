@@ -23,7 +23,7 @@ export function TryButton({ momentId, initialStatus }: { momentId: string; initi
       }
       setStatus(null);
       setOptimisticStatus(null);
-      setError(result.error);
+      setError(result.error ?? "");
     });
   }
 

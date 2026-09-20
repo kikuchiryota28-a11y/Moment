@@ -43,7 +43,7 @@ export function MomentForm({ mode, moment, media: initialMedia = [] }: { mode: "
         router.push(`/moment/${result.data.id}`);
         return;
       }
-      setError(result.error);
+      setError(result.error ?? "");
     });
   }
 
