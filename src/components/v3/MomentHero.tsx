@@ -6,7 +6,6 @@ import { useState } from "react";
 import { startTodayMoment } from "@/actions/v3";
 import { Button } from "@/components/ui/Button";
 import { Badge, PhaseBadge } from "@/components/ui/Badge";
-import { cn } from "@/lib/utils";
 import { isSuccess } from "@/lib/action-result";
 
 type MomentData = { id: string; prompt: string; participantCount: number; status: string; myResultId: string | null };
@@ -23,8 +22,8 @@ function getMomentState(moment: MomentData): MomentState {
 export function MomentHero({ moment, state }: { moment?: MomentData; state?: HomeState }) {
   const router = useRouter();
   const reduced = useReducedMotion();
-  const [busy,setBusy] = useState(false);
-  const [error,setError] = useState<string|null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const momentState = moment ? getMomentState(moment) : null;
 
   const activate = async () => {
@@ -35,76 +34,60 @@ export function MomentHero({ moment, state }: { moment?: MomentData; state?: Hom
     try {
       const result = await startTodayMoment(moment.id);
       if (isSuccess(result)) router.push(`/moment/${moment.id}`);
-      else setError(result.error ?? "Could not open this Moment.");
-    } catch { setError("Could not open this Moment. Try again."); }
-    finally { setBusy(false); }
+      else setError(result.error ?? "Couldn't open this Moment.");
+    } catch {
+      setError("Couldn't open this Moment.");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const title = moment?.prompt ?? (state === "empty" ? "Nothing to enter yet." : "The Moment is unavailable.");
-  const description = moment ? "One question. One action. Something you can actually experience." : state === "empty" ? "The next invitation will appear here when it is ready." : "We could not load this Moment. Try again.";
-  const label = momentState === "recorded" ? "See your result" : momentState === "closed" ? "See the world" : momentState === "active" ? "Enter Moment" : "Start Moment";
+  const title = moment?.prompt ?? (state === "empty" ? "Not yet." : "Unavailable.");
+  const label =
+    momentState === "recorded" ? "See result" :
+    momentState === "closed" ? "See the world" :
+    momentState === "active" ? "Enter" : "Enter Moment";
 
   return (
-    <main className="moment-container py-8 pb-28 md:py-12 md:pb-16">
-      <header className="flex items-center justify-between border-b border-[var(--color-line-value)] pb-5">
-        <span className="font-semibold tracking-[-0.02em]">MOMENT</span>
-        <span className="moment-eyebrow text-[var(--color-muted-ink-value)]">Today</span>
+    <main className="moment-container flex min-h-[100dvh] flex-col py-6 pb-28 md:py-8 md:pb-10">
+      <header className="flex items-center justify-between border-b border-[var(--color-line-value)] pb-4">
+        <span className="text-sm font-semibold tracking-[-0.02em]">MOMENT</span>
+        <span className="text-xs font-medium text-[var(--color-muted-ink-value)]">Today</span>
       </header>
 
-      <div className="grid min-h-[calc(100dvh-150px)] items-center gap-12 py-16 md:grid-cols-[minmax(0,1.35fr)_360px] md:py-24">
-        <section>
-          <div className="moment-eyebrow flex items-center gap-3 text-[var(--color-primary-value)]">
-            <span className="h-px w-8 bg-[var(--color-primary-value)]" aria-hidden="true" />
-            A daily invitation
+      <div className="flex flex-1 items-center py-10 md:py-16">
+        <section className="w-full max-w-5xl">
+          <div className="flex items-center gap-3">
+            <span className="size-2 rounded-full bg-[var(--color-primary-value)]" aria-hidden="true" />
+            <span className="moment-eyebrow text-[var(--color-muted-ink-value)]">Today’s Moment</span>
           </div>
 
           <motion.h1
-            initial={reduced ? false : { opacity: 0, y: 18 }}
+            initial={reduced ? false : { opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: .45, ease: [0.2,0,0,1] }}
-            className="moment-display mt-7 max-w-[10ch] text-[clamp(3.25rem,8vw,8.5rem)]"
+            transition={{ duration: .35, ease: [0.2, 0, 0, 1] }}
+            className="moment-display mt-6 max-w-[12ch] text-[clamp(3.25rem,8vw,7.5rem)]"
           >
             {title}
           </motion.h1>
 
-          <p className="mt-8 max-w-xl text-lg leading-8 text-[var(--color-muted-ink-value)]">{description}</p>
-
-          <div className="mt-10 flex flex-wrap items-center gap-3">
-            {moment && <Badge variant="outline">{moment.participantCount.toLocaleString()} people are in this Moment</Badge>}
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            {moment && <Badge variant="outline">{moment.participantCount.toLocaleString()} entered</Badge>}
             {momentState && <PhaseBadge phase={momentState === "prepared" ? "discover" : momentState === "active" ? "enter" : momentState === "recorded" ? "result" : "closed"} size="sm" />}
           </div>
 
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="mt-8 flex items-center gap-3">
             <Button size="lg" onClick={() => void activate()} loading={busy} disabled={!moment || state === "empty"}>
               {label}
             </Button>
             {error && <p role="alert" className="text-sm text-[var(--color-danger-value)]">{error}</p>}
           </div>
         </section>
-
-        <aside className="md:justify-self-end md:w-full">
-          <div className="rounded-[28px] bg-[var(--color-surface-container-value)] p-6 md:p-7">
-            <p className="moment-eyebrow text-[var(--color-muted-ink-value)]">How MOMENT works</p>
-            <ol className="mt-6 space-y-5">
-              {[
-                ["01","DISCOVER","Notice something worth doing."],
-                ["02","ENTER","Step into the prompt."],
-                ["03","RESULT","Your action becomes part of the world."],
-                ["04","BRANCH","Tomorrow can grow from what happened today."],
-              ].map(([n,phase,copy]) => (
-                <li key={phase} className="grid grid-cols-[32px_1fr] gap-3">
-                  <span className="font-mono text-xs text-[var(--color-muted-ink-value)]">{n}</span>
-                  <div><p className="text-sm font-semibold">{phase}</p><p className="mt-1 text-sm leading-5 text-[var(--color-muted-ink-value)]">{copy}</p></div>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </aside>
       </div>
 
-      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-line-value)] pt-5 text-xs text-[var(--color-muted-ink-value)]">
-        <span>DON'T JUST WATCH WHAT HAPPENS. BE WHAT HAPPENS.</span>
-        <span>Designed for real life.</span>
+      <footer className="flex items-center justify-between border-t border-[var(--color-line-value)] pt-4 text-xs text-[var(--color-muted-ink-value)]">
+        <span>BE WHAT HAPPENS.</span>
+        <span className="hidden sm:inline">MOMENT</span>
       </footer>
     </main>
   );
