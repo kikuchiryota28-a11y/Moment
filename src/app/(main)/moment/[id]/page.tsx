@@ -3,14 +3,14 @@ import { notFound } from "next/navigation";
 import { getTodayMoment, getResults } from "@/lib/db/v3";
 import { StartMomentButton } from "@/components/v3/StartMomentButton";
 import { ResultComposer } from "@/components/v3/ResultComposer";
+import { MomentPhysicsScene } from "@/components/v3/MomentPhysicsScene";
 
-function AmbientSpace() {
-  return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#F5F0E8]">
-      <div className="absolute -left-[18vw] -top-[18vw] h-[55vw] w-[55vw] max-h-[760px] max-w-[760px] rounded-full bg-gradient-to-br from-orange-300/35 via-pink-200/25 to-transparent blur-[120px] animate-pulse" />
-      <div className="absolute -bottom-[20vw] -right-[18vw] h-[52vw] w-[52vw] max-h-[720px] max-w-[720px] rounded-full bg-gradient-to-br from-blue-300/25 via-purple-200/25 to-transparent blur-[120px] animate-pulse [animation-delay:1200ms]" />
-    </div>
-  );
+type MomentPhase = "enter" | "action" | "result" | "branch";
+
+function getPhase(moment: { status: string; myResultId: string | null }): MomentPhase {
+  if (moment.myResultId) return "result";
+  if (["FIRST_MOVER", "LIVE", "ENDING"].includes(moment.status)) return "action";
+  return "enter";
 }
 
 export default async function MomentDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -19,11 +19,20 @@ export default async function MomentDetailPage({ params }: { params: Promise<{ i
   try { moment = await getTodayMoment(); } catch { return notFound(); }
   if (moment.id !== id) return notFound();
   const results = await getResults(id);
-  const live = ["FIRST_MOVER", "LIVE", "ENDING"].includes(moment.status);
+  const phase = getPhase(moment);
 
   return (
-    <main className="relative isolate min-h-[calc(100vh-1px)] overflow-hidden py-6 sm:py-10">
-      <AmbientSpace />
+    <main className="relative isolate min-h-[calc(100vh-1px)] overflow-hidden">
+      <MomentPhysicsScene 
+        moment={{ 
+          id: moment.id, 
+          prompt: moment.prompt, 
+          participantCount: moment.participantCount, 
+          status: moment.status, 
+          myResultId: moment.myResultId 
+        }} 
+        phase={phase} 
+      />
 
       <div aria-hidden="true" className="pointer-events-none absolute -left-[9vw] top-[5vh] z-0 select-none whitespace-nowrap text-[14vw] font-black leading-none tracking-tighter text-[#d9d0c4]/70 opacity-20 -rotate-6">
         MOMENT
@@ -36,9 +45,9 @@ export default async function MomentDetailPage({ params }: { params: Promise<{ i
         <h1 className="mt-5 text-4xl font-black leading-tight tracking-[-.05em] sm:text-6xl">{moment.prompt}</h1>
         <p className="mt-5 text-sm text-[#777269]">{moment.participantCount.toLocaleString()} people are in this Moment.</p>
 
-        {!live && <div className="mt-8"><StartMomentButton id={id} /></div>}
-        {live && !moment.myResultId && <div className="mt-8"><ResultComposer dailyMomentId={id} /></div>}
-        {moment.myResultId && (
+        {phase === "enter" && <div className="mt-8"><StartMomentButton id={id} /></div>}
+        {phase === "action" && <div className="mt-8"><ResultComposer dailyMomentId={id} /></div>}
+        {phase === "result" && (
           <div className="mt-8 rounded-[32px] border border-white/60 bg-white/40 p-6 shadow-[0_20px_50px_rgba(0,0,0,0.08)] backdrop-blur-2xl">
             <p className="text-xs font-black uppercase tracking-[.18em]">YOU MADE A MOMENT.</p>
             <Link href={`/moment/${id}/reveal`} className="mt-4 inline-block rounded-2xl bg-[#171614] px-5 py-4 text-sm font-black text-white">SEE WHAT THE WORLD FOUND</Link>

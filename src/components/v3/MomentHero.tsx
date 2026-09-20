@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { startTodayMoment } from "@/actions/v3";
+import { MomentPhysicsScene } from "@/components/v3/MomentPhysicsScene";
 
 type MomentData = {
   id: string;
@@ -39,6 +40,13 @@ function getStateLabel(state: MomentState) {
   return "Waiting for its first answer";
 }
 
+function getPhase(momentState: MomentState): "discover" | "enter" | "action" | "result" | "branch" {
+  if (momentState === "active") return "enter";
+  if (momentState === "recorded") return "branch";
+  if (momentState === "closed") return "branch";
+  return "discover";
+}
+
 export function MomentHero({ moment, state }: { moment?: MomentData; state?: HomeState }) {
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
@@ -47,6 +55,7 @@ export function MomentHero({ moment, state }: { moment?: MomentData; state?: Hom
 
   const momentState = moment ? getMomentState(moment) : null;
   const actionLabel = momentState ? getActionLabel(momentState, busy) : state === "empty" ? "Come back tomorrow" : "Try again";
+  const phase = moment && momentState ? getPhase(momentState) : "discover";
 
   const activate = async () => {
     if (!moment || busy || state === "empty") {
@@ -83,8 +92,22 @@ export function MomentHero({ moment, state }: { moment?: MomentData; state?: Hom
 
   return (
     <section className="relative isolate min-h-[100dvh] overflow-hidden bg-[#f3efe7] text-[#171614]">
-      <div className="absolute inset-0 -z-10 bg-[linear-gradient(115deg,rgba(255,255,255,.72),transparent_38%),linear-gradient(295deg,rgba(217,204,185,.36),transparent_46%)]" />
-      <div className="absolute inset-0 -z-10 opacity-40 [background-image:linear-gradient(rgba(23,22,20,.045)_1px,transparent_1px),linear-gradient(90deg,rgba(23,22,20,.045)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_bottom,black,transparent_88%)]" />
+      <MomentPhysicsScene
+        moment={moment ? {
+          id: moment.id,
+          prompt: moment.prompt,
+          participantCount: moment.participantCount,
+          status: moment.status,
+          myResultId: moment.myResultId,
+        } : {
+          id: "",
+          prompt: "The next thing is still becoming.",
+          participantCount: 0,
+          status: "PREPARED",
+          myResultId: null,
+        }}
+        phase={phase}
+      />
 
       <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 py-6 sm:px-8 sm:py-8 lg:px-12">
         <span className="text-[11px] font-black uppercase tracking-[0.26em]">MOMENT<span className="text-[#e86631]">.</span></span>
@@ -95,7 +118,7 @@ export function MomentHero({ moment, state }: { moment?: MomentData; state?: Hom
         <aside className="hidden self-center lg:block">
           <div className="border-l border-black/15 pl-4">
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-black/45">A daily invitation</p>
-            <p className="mt-4 max-w-[10rem] text-sm leading-6 text-black/60">One prompt. Something real to notice. An answer you make yourself.</p>
+            <p className="mt-4 max-w-[10rem] text-sm leading-6 text-black/60">One prompt. Something real to notice. An action you take yourself.</p>
           </div>
         </aside>
 
@@ -121,8 +144,8 @@ export function MomentHero({ moment, state }: { moment?: MomentData; state?: Hom
               {moment
                 ? "Take this prompt with you. The experience starts when you leave this screen."
                 : state === "empty"
-                  ? "There is no Moment to enter right now. Your next invitation will appear here."
-                  : "We could not reach the Moment. Reload the space and try again."}
+                ? "There is no Moment to enter right now. Your next invitation will appear here."
+                : "We could not reach the Moment. Reload the space and try again."}
             </p>
           </div>
         </main>
@@ -163,10 +186,10 @@ export function MomentHero({ moment, state }: { moment?: MomentData; state?: Hom
       </div>
 
       <div className="absolute bottom-28 left-5 font-mono text-[9px] uppercase tracking-[0.18em] text-black/35 sm:left-8 lg:bottom-10 lg:left-12">
-        Discover / Decide / Try
+        Discover / Enter / Act
       </div>
       <div className="absolute bottom-28 right-5 font-mono text-[9px] uppercase tracking-[0.18em] text-black/35 sm:right-8 lg:bottom-10 lg:right-12">
-        {moment?.myResultId ? "Recorded" : "Make something of today"}
+        {moment?.myResultId ? "Branch recorded" : "Make something of today"}
       </div>
     </section>
   );

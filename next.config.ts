@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "dkjyqwxjretoariddbce.supabase.co", pathname: "/storage/v1/object/public/**" },
     ],
   },
+  turbopack: {
+    root: __dirname,
+  },
 };
 
 export default nextConfig;

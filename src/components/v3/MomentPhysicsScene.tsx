@@ -9,6 +9,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { startTodayMoment } from "@/actions/v3";
 
+type MomentPhase = "discover" | "enter" | "action" | "result" | "branch";
+
 const fluidVertex = `
   varying vec2 vUv;
   void main() {
@@ -22,6 +24,7 @@ const fluidFragment = `
   varying vec2 vUv;
   uniform float uTime;
   uniform vec2 uPointer;
+  uniform float uIntensity;
 
   float hash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
@@ -61,8 +64,8 @@ const fluidFragment = `
       fbm(uv * 2.4 + vec2(-t * 0.8, t))
     );
 
-    uv += (flow - 0.5) * 0.11;
-    uv += normalize(p + 0.0001) * exp(-distanceToPointer * 4.5) * 0.075;
+    uv += (flow - 0.5) * 0.11 * uIntensity;
+    uv += normalize(p + 0.0001) * exp(-distanceToPointer * 4.5) * 0.075 * uIntensity;
 
     float n = fbm(uv * 3.2 + vec2(t * 0.8, -t));
     float glow = exp(-distanceToPointer * 3.2);
@@ -74,10 +77,10 @@ const fluidFragment = `
     vec3 blue = vec3(0.28, 0.42, 0.58);
 
     vec3 color = ivory;
-    color = mix(color, amber, smoothstep(0.46, 0.78, n) * 0.32);
-    color = mix(color, rose, smoothstep(0.60, 0.92, wave) * 0.18);
-    color = mix(color, blue, smoothstep(0.65, 0.98, 1.0 - n) * 0.12);
-    color += vec3(1.0, 0.73, 0.43) * glow * 0.22;
+    color = mix(color, amber, smoothstep(0.46, 0.78, n) * 0.32 * uIntensity);
+    color = mix(color, rose, smoothstep(0.60, 0.92, wave) * 0.18 * uIntensity);
+    color = mix(color, blue, smoothstep(0.65, 0.98, 1.0 - n) * 0.12 * uIntensity);
+    color += vec3(1.0, 0.73, 0.43) * glow * 0.22 * uIntensity;
 
     float vignette = 1.0 - smoothstep(0.25, 0.85, distance(uv, vec2(0.5)));
     color *= 0.91 + vignette * 0.10;
@@ -94,18 +97,20 @@ type MomentData = {
   myResultId: string | null;
 };
 
-function FluidPlane() {
+function FluidPlane({ intensity = 1 }: { intensity?: number }) {
   const material = useRef<THREE.ShaderMaterial>(null);
   const { pointer } = useThree();
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
     uPointer: { value: new THREE.Vector2(0, 0) },
+    uIntensity: { value: intensity },
   }), []);
 
   useFrame((state) => {
     if (!material.current) return;
     material.current.uniforms.uTime.value = state.clock.elapsedTime;
     material.current.uniforms.uPointer.value.lerp(new THREE.Vector2(pointer.x, pointer.y), 0.14);
+    material.current.uniforms.uIntensity.value = intensity;
   });
 
   return (
@@ -179,13 +184,14 @@ function SculpturalType() {
   );
 }
 
-function GlassCard({ moment }: { moment: MomentData }) {
+function GlassCard({ moment, phase }: { moment: MomentData; phase: MomentPhase }) {
   const router = useRouter();
   const { pointer } = useThree();
   const [hovered, setHovered] = useState(false);
   const [busy, setBusy] = useState(false);
   const [started, setStarted] = useState(false);
   const live = ["FIRST_MOVER", "LIVE", "ENDING"].includes(moment.status);
+  const isActionPhase = phase === "action";
   const cta = moment.myResultId ? "CONTINUE" : live ? "MAKE YOUR MOMENT" : started ? "WORLD IS FORMING." : busy ? "STARTING…" : "START THE MOMENT";
 
   const [spring, api] = useSpring(() => ({
@@ -265,7 +271,42 @@ function GlassCard({ moment }: { moment: MomentData }) {
   );
 }
 
-function Scene({ moment }: { moment: MomentData }) {
+function Scene({ moment, phase, reducedMotion }: { moment: MomentData; phase: MomentPhase; reducedMotion: boolean }) {
+  const isActivePhase = phase === "enter" || phase === "action";
+  const fluidIntensity = isActivePhase ? 1 : 0.15;
+
+  return (
+    <>
+      <color attach="background" args={["#f6f1e8"]} />
+      <ambientLight intensity={1.7} />
+      <spotLight position={[-4, 5, 5]} intensity={55} angle={0.52} penumbra={0.8} distance={12} color="#ffd9a6" />
+      <spotLight position={[4, -2, 4]} intensity={35} angle={0.45} penumbra={1} distance={10} color="#b7c9e7" />
+      {isActivePhase && <FluidPlane intensity={fluidIntensity} />}
+      {!isActivePhase && (
+        <mesh position={[0, 0, -3.5]} scale={[13, 8, 1]}>
+          <planeGeometry args={[2, 2]} />
+          <meshBasicMaterial color="#f6f1e8" />
+        </mesh>
+      )}
+      <PointerField />
+      <SculpturalType />
+      {phase !== "result" && phase !== "branch" && <GlassCard moment={moment} phase={phase} />}
+      <EffectComposer enabled={!reducedMotion && isActivePhase} multisampling={2}>
+        <Bloom intensity={0.55 * fluidIntensity} luminanceThreshold={0.72} luminanceSmoothing={0.35} mipmapBlur />
+        <Noise opacity={0.028 * fluidIntensity} />
+        <Vignette eskil={false} offset={0.18} darkness={0.62} />
+      </EffectComposer>
+    </>
+  );
+}
+
+export function MomentPhysicsScene({ 
+  moment, 
+  phase = "enter" 
+}: { 
+  moment: MomentData; 
+  phase?: MomentPhase;
+}) {
   const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
@@ -276,30 +317,17 @@ function Scene({ moment }: { moment: MomentData }) {
     return () => query.removeEventListener("change", update);
   }, []);
 
-  return (
-    <>
-      <color attach="background" args={["#f6f1e8"]} />
-      <ambientLight intensity={1.7} />
-      <spotLight position={[-4, 5, 5]} intensity={55} angle={0.52} penumbra={0.8} distance={12} color="#ffd9a6" />
-      <spotLight position={[4, -2, 4]} intensity={35} angle={0.45} penumbra={1} distance={10} color="#b7c9e7" />
-      <FluidPlane />
-      <PointerField />
-      <SculpturalType />
-      <GlassCard moment={moment} />
-      <EffectComposer enabled={!reducedMotion} multisampling={2}>
-        <Bloom intensity={0.55} luminanceThreshold={0.72} luminanceSmoothing={0.35} mipmapBlur />
-        <Noise opacity={0.028} />
-        <Vignette eskil={false} offset={0.18} darkness={0.62} />
-      </EffectComposer>
-    </>
-  );
-}
+  const isActivePhase = phase === "enter" || phase === "action";
 
-export function MomentPhysicsScene({ moment }: { moment: MomentData }) {
   return (
-    <section className="fixed inset-0 z-0 h-[100dvh] w-full overflow-hidden bg-[#f6f1e8]" aria-label="MOMENT interactive space">
-      <Canvas dpr={[1, 1.7]} camera={{ position: [0, 0, 6.5], fov: 42, near: 0.1, far: 100 }} gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }} frameloop="always">
-        <Scene moment={moment} />
+    <section className="fixed inset-0 z-0 h-[100dvh] w-full overflow-hidden bg-[#f6f1e8]" aria-label={`MOMENT interactive space — ${phase}`}>
+      <Canvas 
+        dpr={[1, 1.7]} 
+        camera={{ position: [0, 0, 6.5], fov: 42, near: 0.1, far: 100 }} 
+        gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }} 
+        frameloop={isActivePhase ? "always" : "demand"}
+      >
+        <Scene moment={moment} phase={phase} reducedMotion={reducedMotion} />
       </Canvas>
       <div className="pointer-events-none absolute left-5 top-5 z-10 text-[10px] font-black uppercase tracking-[0.24em] text-black/45 sm:left-8 sm:top-8">
         MOMENT / 03

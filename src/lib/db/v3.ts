@@ -24,6 +24,20 @@ export async function getResults(dailyMomentId:string,userId?:string):Promise<Re
 
 export async function getWorldArchive(limit=24){const sb=await createClient();const{data,error}=await sb.from("daily_moments").select("id,moment_date,prompt,status").lt("moment_date",new Date().toISOString().slice(0,10)).order("moment_date",{ascending:false}).limit(limit);if(error)throw error;return data??[];}
 
+export async function getTomorrowMoment(): Promise<{ id: string; momentDate: string; prompt: string; status: string } | null> {
+  const sb = await createClient();
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  const { data, error } = await sb
+    .from("daily_moments")
+    .select("id, moment_date, prompt, status")
+    .eq("moment_date", tomorrowStr)
+    .maybeSingle();
+  if (error || !data) return null;
+  return { id: data.id, momentDate: data.moment_date, prompt: data.prompt, status: data.status };
+}
+
 export async function getResultById(id:string):Promise<Result|null>{const sb=await createClient();const{data,error}=await sb.from("results").select("id,daily_moment_id,user_id,result_type,text_content,choice_value,why,country_code,city,created_at,profiles!results_user_id_fkey(username,display_name,avatar_url),result_media(media_url)").eq("id",id).eq("moderation_status","VISIBLE").maybeSingle();if(error)throw error;return data?mapResult(data as unknown as ResultRow):null;}
 
 function selectReveal(rows:ResultRow[]){const picked:ResultRow[]=[];const usedTypes=new Set<string>();const usedCountries=new Set<string>();const take=(p:(r:ResultRow)=>boolean)=>{const i=rows.findIndex(r=>!picked.includes(r)&&p(r));if(i>=0){const row=rows[i];picked.push(row);usedTypes.add(row.result_type);const country=row.country_code??"";if(country.length>0)usedCountries.add(country);}};
