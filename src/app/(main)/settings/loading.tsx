@@ -1,0 +1,1 @@
+export default function Loading() { return <div className="py-10"><div className="h-8 w-32 animate-pulse rounded bg-black/10"/><div className="mt-8 space-y-4"><div className="h-28 animate-pulse rounded-3xl bg-black/5"/><div className="h-40 animate-pulse rounded-3xl bg-black/5"/><div className="h-32 animate-pulse rounded-3xl bg-black/5"/></div></div>; }
