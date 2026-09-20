@@ -141,7 +141,7 @@ export function ResultComposer({ dailyMomentId }: { dailyMomentId: string }) {
         why: why.trim(),
         media: media,
       });
-      setMessage("ACTION COMMITTED.");
+      setMessage("YOUR BRANCH IS LIVE.");
       
       // Redirect after showing success
       setTimeout(() => {
@@ -163,13 +163,13 @@ export function ResultComposer({ dailyMomentId }: { dailyMomentId: string }) {
   }, []);
 
   return (
-    <Card variant="default" className="max-w-xl mx-auto">
+    <Card variant="default" className="mx-auto max-w-3xl">
       <AnimatePresence mode="wait">
         {/* Input Form */}
         {commitPhase === "idle" && (
           <div key="form" className="animate-in fade-in-0 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
-            <div className="mb-6">
-              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-accent)] mb-4">DECLARE YOUR ACTION</p>
+            <div className="mb-8">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-accent)] mb-4">MAKE IT REAL</p>
               <div className="flex flex-wrap gap-2" role="tablist" aria-label="Action format">
                 {TYPES.map(({ value, label }) => (
                   <button
@@ -268,13 +268,13 @@ export function ResultComposer({ dailyMomentId }: { dailyMomentId: string }) {
               size="lg"
               className="mb-3"
             >
-              COMMIT ACTION
+              LEAVE A TRACE →
             </Button>
 
             {message && (
               <p role="status" className={cn(
                 "text-sm font-semibold text-center",
-                message === "ACTION COMMITTED." ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"
+                message === "BRANCH CREATED." ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"
               )}>
                 {message}
               </p>
@@ -289,7 +289,7 @@ export function ResultComposer({ dailyMomentId }: { dailyMomentId: string }) {
             initial={{ scale: 1, opacity: 1 }}
             animate={{ scale: 0.95, opacity: 0.8 }}
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-            className="max-w-xl mx-auto"
+            className="mx-auto max-w-3xl"
           >
             <div className="rounded-[16px] bg-[var(--color-ink)] p-8 text-center">
               <motion.div
@@ -308,7 +308,7 @@ export function ResultComposer({ dailyMomentId }: { dailyMomentId: string }) {
             key="committing"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="max-w-xl mx-auto"
+            className="mx-auto max-w-3xl"
           >
             <div className="rounded-[16px] bg-[var(--color-ink)] p-8 text-center">
               <div className="relative w-20 h-20 mx-auto mb-4">
@@ -344,7 +344,7 @@ export function ResultComposer({ dailyMomentId }: { dailyMomentId: string }) {
                   </span>
                 </div>
               </div>
-              <p className="text-white/80 font-semibold text-lg">SEALING YOUR BRANCH</p>
+              <p className="text-white/80 font-semibold text-lg">MAKING IT REAL</p>
             </div>
           </motion.div>
         )}
@@ -369,7 +369,7 @@ export function ResultComposer({ dailyMomentId }: { dailyMomentId: string }) {
                 </svg>
               </motion.div>
               <p className="text-[var(--color-success)] font-semibold text-xl mb-2">ACTION COMMITTED</p>
-              <p className="text-[var(--color-muted-ink)]">Your branch is now part of the world.</p>
+              <p className="text-[var(--color-muted-ink)]">What you did is now part of the world.</p>
               
               {/* Show preview of what was submitted */}
               <div className="mt-6 p-4 rounded-[12px] bg-[var(--color-surface)] text-left">
