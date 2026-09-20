@@ -1,0 +1,120 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/supabase/server";
+import type { ActionResult } from "@/types/action";
+import type { ResultType } from "@/types/v3";
+
+const uuid = (v: string) => /^[0-9a-f-]{36}$/i.test(v);
+const ownedUrl = (url: string, userId: string) => {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return Boolean(base && url.startsWith(`${base}/storage/v1/object/public/moment-media/${userId}/`));
+};
+
+export async function startTodayMoment(id: string): Promise<ActionResult<{ started: boolean }>> {
+  if (!uuid(id)) return { success: false, error: "Invalid Moment.", code: "INVALID_MOMENT_ID" };
+  const sb = await createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return { success: false, error: "Authentication required.", code: "AUTH_REQUIRED" };
+
+  const { data, error } = await sb
+    .from("daily_moments")
+    .update({ status: "FIRST_MOVER", first_mover_id: user.id, started_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("status", "PREPARED")
+    .is("first_mover_id", null)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { success: false, error: "Moment could not be started.", code: "START_FAILED" };
+  if (!data) return { success: false, error: "Someone already started this Moment. Refresh and join in.", code: "ALREADY_STARTED" };
+
+  await sb.rpc("start_v3_journey", { p_daily_moment_id: id });
+
+  revalidatePath("/");
+  revalidatePath(`/moment/${id}`);
+  return { success: true, data: { started: true } };
+}
+
+export async function submitTodayResult(fd: FormData): Promise<ActionResult<{ id: string }>> {
+  const dailyMomentId = String(fd.get("dailyMomentId") ?? "");
+  const resultType = String(fd.get("resultType") ?? "") as ResultType;
+  const textContent = String(fd.get("textContent") ?? "").trim();
+  const choiceValue = String(fd.get("choiceValue") ?? "").trim();
+  const why = String(fd.get("why") ?? "").trim();
+  const mediaUrl = String(fd.get("mediaUrl") ?? "").trim();
+
+  if (!uuid(dailyMomentId)) return { success: false, error: "Invalid Moment.", code: "INVALID_MOMENT_ID" };
+  if (!["photo", "video", "text", "choice", "combination"].includes(resultType)) return { success: false, error: "Invalid result type.", code: "INVALID_RESULT_TYPE" };
+  if (resultType === "text" && (!textContent || textContent.length > 2000)) return { success: false, error: "Text must be 1–2000 characters.", code: "INVALID_TEXT" };
+  if (resultType === "choice" && (!choiceValue || choiceValue.length > 120)) return { success: false, error: "Choose an answer.", code: "INVALID_CHOICE" };
+  if (["photo", "video", "combination"].includes(resultType) && !mediaUrl) return { success: false, error: "Bring back a photo or video first.", code: "MEDIA_REQUIRED" };
+  if (resultType === "combination" && !textContent) return { success: false, error: "Add a short note to your combination.", code: "TEXT_REQUIRED" };
+  if (why.length > 500) return { success: false, error: "Why is too long.", code: "INVALID_WHY" };
+
+  const sb = await createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return { success: false, error: "Authentication required.", code: "AUTH_REQUIRED" };
+  if (mediaUrl && !ownedUrl(mediaUrl, user.id)) return { success: false, error: "Invalid media.", code: "INVALID_MEDIA_OWNERSHIP" };
+
+  const { data: moment } = await sb
+    .from("daily_moments")
+    .select("id, status, first_mover_id")
+    .eq("id", dailyMomentId)
+    .maybeSingle();
+
+  if (!moment || !["FIRST_MOVER", "LIVE", "ENDING"].includes(moment.status)) return { success: false, error: "This Moment is not accepting answers.", code: "MOMENT_NOT_LIVE" };
+  if (moment.status === "FIRST_MOVER" && moment.first_mover_id !== user.id) return { success: false, error: "The first answer is being prepared.", code: "MOMENT_STARTING" };
+
+  const { data, error } = await sb
+    .from("results")
+    .upsert(
+      {
+        daily_moment_id: dailyMomentId,
+        user_id: user.id,
+        result_type: resultType,
+        text_content: textContent || null,
+        choice_value: choiceValue || null,
+        why: why || null,
+      },
+      { onConflict: "daily_moment_id,user_id" }
+    )
+    .select("id")
+    .single();
+
+  if (error || !data) return { success: false, error: "Your Moment could not be saved.", code: "RESULT_SAVE_FAILED" };
+
+  if (mediaUrl) {
+    await sb.from("result_media").delete().eq("result_id", data.id);
+    const { error: mediaError } = await sb
+      .from("result_media")
+      .insert({ result_id: data.id, media_url: mediaUrl, media_type: resultType === "video" ? "video" : "image" });
+    if (mediaError) return { success: false, error: "Media could not be saved.", code: "MEDIA_SAVE_FAILED" };
+  }
+
+  if (moment.status === "FIRST_MOVER") {
+    await sb
+      .from("daily_moments")
+      .update({ status: "LIVE" })
+      .eq("id", dailyMomentId)
+      .eq("status", "FIRST_MOVER")
+      .eq("first_mover_id", user.id);
+  }
+
+  const experienceNote = textContent || choiceValue || why;
+  const experienceMediaUrl = mediaUrl || null;
+  const experienceLocationName = null;
+  await sb.rpc("complete_v3_journey", {
+    p_daily_moment_id: dailyMomentId,
+    p_experience_note: experienceNote,
+    p_experience_media_url: experienceMediaUrl,
+    p_experience_location_name: experienceLocationName,
+  });
+
+  revalidatePath("/");
+  revalidatePath(`/moment/${dailyMomentId}`);
+  revalidatePath(`/moment/${dailyMomentId}/reveal`);
+  revalidatePath("/journey");
+  revalidatePath("/profile/me");
+  return { success: true, data: { id: data.id } };
+}
