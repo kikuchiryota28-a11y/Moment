@@ -17,8 +17,8 @@ export default async function YouPage() {
   const name = profile?.display_name ?? "You";
 
   return (
-    <main className="moment-container py-8 pb-28 md:py-12 md:pb-16">
-      <header className="flex items-center justify-between pb-8">
+    <main className="moment-container py-8 pb-28 md:py-10">
+      <header className="flex items-center justify-between pt-10 pb-8 md:pt-16">
         <div className="flex items-center gap-4">
           <Avatar src={profile?.avatar_url ?? null} name={name} size={56} />
           <div><p className="moment-eyebrow text-[var(--color-accent)]">You</p><h1 className="text-2xl font-semibold tracking-[-0.03em]">{name}</h1></div>
