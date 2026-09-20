@@ -1,42 +1,38 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 import { BottomNavigation } from "@/components/layout/BottomNavigation";
 import { SidebarRail } from "@/components/layout/SidebarRail";
 import { CanvasProvider } from "@/components/layout/CanvasProvider";
 
-const routeTransition = {
-  type: "spring" as const,
-  stiffness: 280,
-  damping: 30,
-  mass: 0.9,
-};
-
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const reduced = useReducedMotion();
 
   return (
     <CanvasProvider>
-      <div className="relative min-h-[100dvh] bg-[var(--color-canvas)] text-[var(--color-ink)]">
+      <div className="relative min-h-[100dvh] overflow-x-clip bg-[var(--color-canvas)] text-[var(--color-ink)]">
+        <div className="moment-atmosphere" aria-hidden="true">
+          <div className="moment-aura-left" />
+          <div className="moment-aura-right" />
+        </div>
+
         <div className="relative z-10 flex min-h-[100dvh]">
           <SidebarRail />
-          <main className="flex-1 min-w-0 lg:pl-0">
-            <div className="relative min-h-[100dvh]">
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={pathname}
-                  initial={{ opacity: 0, y: 16, scale: 0.995 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -12, scale: 0.998 }}
-                  transition={routeTransition}
-                  className="min-h-[100dvh] pb-24 lg:pb-0"
-                >
-                  {children}
-                </motion.div>
-              </AnimatePresence>
-            </div>
+          <main className="min-w-0 flex-1 md:pl-0 lg:pl-[72px]">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={pathname}
+                initial={reduced ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={reduced ? undefined : { opacity: 0 }}
+                transition={{ duration: reduced ? 0 : 0.18, ease: [0.2, 0, 0, 1] }}
+                className="min-h-[100dvh] pb-24 md:pb-0"
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
           </main>
         </div>
 
