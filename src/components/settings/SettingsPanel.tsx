@@ -70,7 +70,7 @@ export function SettingsPanel({ initial, email }: { initial: SettingsState; emai
     startTransition(async () => {
       const result = await updateEmail(emailValue);
       if (!result.success) {
-        addToast({ message: result.error, type: "error" });
+        addToast({ message: result.error ?? "Email update failed", type: "error" });
         return;
       }
       addToast({ message: "Check your email to confirm the address change.", type: "success" });
@@ -81,7 +81,7 @@ export function SettingsPanel({ initial, email }: { initial: SettingsState; emai
     startTransition(async () => {
       const result = await updatePassword(password);
       if (!result.success) {
-        addToast({ message: result.error, type: "error" });
+        addToast({ message: result.error ?? "Password update failed", type: "error" });
         return;
       }
       setPassword("");
@@ -93,7 +93,7 @@ export function SettingsPanel({ initial, email }: { initial: SettingsState; emai
     startTransition(async () => {
       const result = await signOut();
       if (!result.success) {
-        addToast({ message: result.error, type: "error" });
+        addToast({ message: result.error ?? "Sign out failed", type: "error" });
         return;
       }
       router.replace("/login");
@@ -104,7 +104,7 @@ export function SettingsPanel({ initial, email }: { initial: SettingsState; emai
     startTransition(async () => {
       const result = await deleteAccount();
       if (!result.success) {
-        addToast({ message: result.error, type: "error" });
+        addToast({ message: result.error ?? "Account deletion failed", type: "error" });
         return;
       }
       router.replace("/login");
