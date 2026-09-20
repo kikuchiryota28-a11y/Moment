@@ -1,4 +1,12 @@
 "use client";
-import Link from "next/link"; import {usePathname} from "next/navigation"; import {cn} from "@/lib/utils"; import {Sparkles,Globe2,Compass,UserRound} from "lucide-react";
+import Link from "next/link";
+import {usePathname} from "next/navigation";
+import {cn} from "@/lib/utils";
+import {Sparkles,Globe2,Compass,UserRound} from "lucide-react";
 const items=[{href:"/",label:"Moment",icon:Sparkles},{href:"/world",label:"World",icon:Globe2},{href:"/journey",label:"Journey",icon:Compass},{href:"/profile/me",label:"You",icon:UserRound}];
-export function BottomNavigation(){const pathname=usePathname();return <nav className="fixed inset-x-3 bottom-3 z-40 rounded-[22px] border border-white/70 bg-white/62 p-1.5 shadow-[var(--shadow-deep)] backdrop-blur-2xl md:hidden" aria-label="Main navigation"><div className="grid grid-cols-4">{items.map(({href,label,icon:Icon})=>{const active=href==="/" ? pathname==="/" : pathname.startsWith(href);return <Link key={href} href={href} aria-current={active?"page":undefined} className={cn("relative flex h-12 flex-col items-center justify-center gap-0.5 rounded-[17px] text-[9px] font-semibold transition-all",active?"bg-[var(--color-ink)] text-white":"text-[var(--color-muted-ink)]")}><Icon size={18} strokeWidth={active?2.2:1.7}/><span>{label}</span></Link>})}</div></nav>}
+export function BottomNavigation(){
+ const pathname=usePathname();
+ return <nav aria-label="Primary" className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-md items-center justify-between rounded-[14px] border border-[var(--color-line)] bg-[var(--color-elevated)] px-2 py-1.5 shadow-[var(--shadow-soft)] md:hidden">
+  {items.map(({href,label,icon:Icon})=>{const active=href==="/" ? pathname==="/" : pathname.startsWith(href);return <Link key={href} href={href} aria-current={active?"page":undefined} className={cn("flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-[10px] px-2 text-[11px] font-medium transition-colors",active?"bg-[var(--color-ink)] text-white":"text-[var(--color-muted-ink)] hover:text-[var(--color-ink)]")}><Icon size={17} strokeWidth={active?2:1.8}/><span>{label}</span></Link>})}
+ </nav>;
+}
