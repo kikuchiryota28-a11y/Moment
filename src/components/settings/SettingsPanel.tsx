@@ -34,6 +34,8 @@ export function SettingsPanel({ initial, email }: { initial: SettingsState; emai
   const [isPending, startTransition] = useTransition();
   const [showDelete, setShowDelete] = useState(false);
 
+  const emailDisplay = email ?? "";
+
   function save(next: SettingsState, rollback: SettingsState) {
     setState(next);
     startTransition(async () => {
@@ -122,7 +124,7 @@ export function SettingsPanel({ initial, email }: { initial: SettingsState; emai
       </div>
 
       <Section title="ACCOUNT">
-        <Row label="Email" description={email}>
+        <Row label="Email" description={emailDisplay}>
           <div className="flex gap-2">
             <Input
               value={emailValue}
