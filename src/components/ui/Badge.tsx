@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, HTMLAttributes } from "react";
+import { forwardRef, type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
@@ -9,75 +9,32 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   dot?: boolean;
 }
 
-const variantStyles = {
-  default: "bg-[var(--color-muted-ink)]/10 text-[var(--color-muted-ink)] border-transparent",
-  accent: "bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border-transparent",
-  success: "bg-[var(--color-success)]/10 text-[var(--color-success)] border-transparent",
-  warning: "bg-[var(--color-warning)]/10 text-[var(--color-warning)] border-transparent",
-  danger: "bg-[var(--color-danger)]/10 text-[var(--color-danger)] border-transparent",
-  outline: "bg-transparent text-[var(--color-muted-ink)] border-[var(--color-line)]",
+const variants = {
+  default: "bg-[var(--color-surface-container-value)] text-[var(--color-muted-ink-value)]",
+  accent: "bg-[var(--color-primary-container-value)] text-[var(--color-ink-value)]",
+  success: "bg-[color-mix(in_srgb,var(--color-success-value)_14%,transparent)] text-[var(--color-success-value)]",
+  warning: "bg-amber-100 text-amber-900",
+  danger: "bg-red-100 text-red-900",
+  outline: "border border-[var(--color-line-value)] text-[var(--color-muted-ink-value)]",
 };
 
-const sizeStyles = {
-  sm: "px-2 py-0.5 text-[10px] gap-1",
-  md: "px-3 py-1 text-[11px] gap-1.5",
-};
-
-export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
-  ({ className, variant = "default", size = "md", dot, children, ...props }, ref) => {
-    return (
-      <span
-        ref={ref}
-        className={cn(
-          "inline-flex items-center font-semibold rounded-full border transition-colors duration-200",
-          variantStyles[variant],
-          sizeStyles[size],
-          className
-        )}
-        {...props}
-      >
-        {dot && <span className="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true" />}
-        {children}
-      </span>
-    );
-  }
-);
-
-Badge.displayName = "Badge";
+export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(function Badge(
+  { className, variant = "default", size = "md", dot, children, ...props }, ref
+) {
+  return <span ref={ref} className={cn("inline-flex items-center gap-1.5 rounded-full font-semibold", size === "sm" ? "px-2.5 py-1 text-[11px]" : "px-3 py-1.5 text-xs", variants[variant], className)} {...props}>{dot && <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />}{children}</span>;
+});
 
 export interface PhaseBadgeProps extends HTMLAttributes<HTMLSpanElement> {
   phase: "planned" | "trying" | "completed" | "discover" | "enter" | "action" | "result" | "branch" | "closed";
   size?: "sm" | "md";
 }
-
 const phaseConfig = {
-  planned: { variant: "accent" as const, label: "PLANNED", dot: true },
-  trying: { variant: "default" as const, label: "TRYING", dot: true },
-  completed: { variant: "success" as const, label: "COMPLETED", dot: true },
-  discover: { variant: "outline" as const, label: "DISCOVER", dot: false },
-  enter: { variant: "accent" as const, label: "ENTER", dot: false },
-  action: { variant: "default" as const, label: "ACTION", dot: false },
-  result: { variant: "success" as const, label: "RESULT", dot: false },
-  branch: { variant: "accent" as const, label: "BRANCH", dot: false },
-  closed: { variant: "default" as const, label: "CLOSED", dot: false },
-};
+  planned: ["accent","PLANNED",true], trying:["default","TRYING",true], completed:["success","COMPLETED",true],
+  discover:["outline","DISCOVER",false], enter:["accent","ENTER",false], action:["default","ACTION",false],
+  result:["success","RESULT",false], branch:["accent","BRANCH",false], closed:["default","CLOSED",false],
+} as const;
 
-export const PhaseBadge = forwardRef<HTMLSpanElement, PhaseBadgeProps>(
-  ({ className, phase, size = "md", ...props }, ref) => {
-    const config = phaseConfig[phase];
-    return (
-      <Badge
-        ref={ref}
-        variant={config.variant}
-        size={size}
-        dot={config.dot}
-        className={cn("font-black uppercase tracking-[0.08em]", className)}
-        {...props}
-      >
-        {config.label}
-      </Badge>
-    );
-  }
-);
-
-PhaseBadge.displayName = "PhaseBadge";
+export const PhaseBadge = forwardRef<HTMLSpanElement, PhaseBadgeProps>(function PhaseBadge({ phase, size="md", className, ...props }, ref) {
+  const [variant,label,dot] = phaseConfig[phase];
+  return <Badge ref={ref} variant={variant} size={size} dot={dot} className={cn("uppercase tracking-[0.08em]", className)} {...props}>{label}</Badge>;
+});
