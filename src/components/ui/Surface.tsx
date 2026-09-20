@@ -11,38 +11,30 @@ export interface SurfaceProps extends HTMLAttributes<HTMLDivElement> {
 
 const elevationStyles = {
   ground: "bg-[var(--color-canvas)]",
-  surface: "bg-[var(--color-surface)] border border-[var(--color-line)] shadow-[var(--shadow-surface)]",
-  elevated: "bg-[var(--color-elevated)] border border-[var(--color-line)] shadow-[var(--shadow-elevated)] backdrop-blur-md",
-  overlay: "bg-[var(--color-overlay)] border border-[var(--color-line)] shadow-[var(--shadow-overlay)] backdrop-blur-xl",
+  surface: "border border-[var(--color-line)]/80 bg-[var(--color-surface)]",
+  elevated: "border border-white/30 bg-[color-mix(in_srgb,var(--color-surface)_76%,transparent)] shadow-[var(--shadow-elevated)] backdrop-blur-xl",
+  overlay: "border border-white/40 bg-[color-mix(in_srgb,var(--color-overlay)_84%,transparent)] shadow-[var(--shadow-overlay)] backdrop-blur-2xl",
 };
 
-const paddingStyles = {
-  none: "",
-  sm: "p-4",
-  md: "p-6",
-  lg: "p-8",
-};
+const paddingStyles = { none: "", sm: "p-4", md: "p-6", lg: "p-8" };
 
 export const Surface = forwardRef<HTMLDivElement, SurfaceProps>(
-  ({ className, elevation = "surface", padding = "md", interactive, children, ...props }, ref) => {
-    return (
-      <div
-        ref={ref}
-        className={cn(
-          "rounded-[20px] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          elevationStyles[elevation],
-          paddingStyles[padding],
-          interactive && "hover:shadow-[var(--shadow-elevated)] hover:-translate-y-0.5 cursor-pointer",
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </div>
-    );
-  }
+  ({ className, elevation = "surface", padding = "md", interactive, children, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(
+        "rounded-[20px]",
+        elevationStyles[elevation],
+        paddingStyles[padding],
+        interactive && "transition-transform duration-200 ease-out hover:-translate-y-0.5 active:translate-y-0",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  )
 );
-
 Surface.displayName = "Surface";
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
@@ -51,28 +43,16 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const cardVariants = {
-  default: "bg-[var(--color-surface)] border border-[var(--color-line)] shadow-[var(--shadow-surface)]",
-  interactive: "bg-[var(--color-surface)] border border-[var(--color-line)] shadow-[var(--shadow-surface)] hover:shadow-[var(--shadow-elevated)] hover:-translate-y-0.5 cursor-pointer transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
-  outlined: "bg-transparent border-2 border-[var(--color-line)] hover:border-[var(--color-accent)] transition-colors duration-200",
+  default: "border border-[var(--color-line)]/80 bg-[var(--color-surface)]",
+  interactive: "border border-[var(--color-line)]/80 bg-[var(--color-surface)] transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-surface)]",
+  outlined: "border border-[var(--color-line)] bg-transparent",
 };
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant = "default", padding = "md", children, ...props }, ref) => {
-    return (
-      <div
-        ref={ref}
-        className={cn(
-          "rounded-[20px]",
-          cardVariants[variant],
-          paddingStyles[padding],
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </div>
-    );
-  }
+  ({ className, variant = "default", padding = "md", children, ...props }, ref) => (
+    <div ref={ref} className={cn("rounded-[18px]", cardVariants[variant], paddingStyles[padding], className)} {...props}>
+      {children}
+    </div>
+  )
 );
-
 Card.displayName = "Card";
