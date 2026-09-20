@@ -19,7 +19,7 @@ function applyTheme(theme: ThemePreference) {
   localStorage.setItem("moment-theme", theme);
 }
 
-export function ThemeProvider({ initialTheme, children }: { initialTheme: ThemePreference; children: React.ReactNode }) {
+export function ThemeProvider({ initialTheme = "system", children }: { initialTheme?: ThemePreference; children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemePreference>(initialTheme);
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
 

@@ -7,6 +7,7 @@ import { ArrowLeft, Camera, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { updateProfile, uploadAvatar } from "@/actions/profiles";
 import type { Profile } from "@/types/moment";
+import { isSuccess } from "@/lib/action-result";
 
 interface Props { profile: Profile & { websiteUrl: string | null; instagramUrl: string | null; xUrl: string | null } }
 
@@ -28,8 +29,11 @@ export function ProfileForm({ profile }: Props) {
     setError(""); setSaved(false);
     startSaving(async () => {
       const result = await updateProfile(form);
-      if (!result.success) { setError(result.error); return; }
-      setSaved(true); router.push(`/profile/${result.data.username}`);
+      if (isSuccess(result)) {
+        setSaved(true); router.push(`/profile/${result.data.username}`);
+        return;
+      }
+      setError(result.error);
     });
   }
   function chooseAvatar(file: File | undefined) {
@@ -39,8 +43,11 @@ export function ProfileForm({ profile }: Props) {
     startUploading(async () => {
       const data = new FormData(); data.set("avatar", file);
       const result = await uploadAvatar(data); URL.revokeObjectURL(preview);
-      if (!result.success) { setAvatarUrl(profile.avatarUrl); setError(result.error); return; }
-      setAvatarUrl(result.data.avatarUrl);
+      if (isSuccess(result)) {
+        setAvatarUrl(result.data.avatarUrl);
+        return;
+      }
+      setAvatarUrl(profile.avatarUrl); setError(result.error);
     });
   }
 
@@ -64,8 +71,8 @@ export function ProfileForm({ profile }: Props) {
     {saved && <p role="status" className="mt-6 rounded-2xl border border-[#ded8ce] bg-white/70 px-4 py-3 text-sm font-semibold">Profile saved.</p>}
     <button type="button" onClick={save} disabled={isSaving || isUploading} className="mt-8 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#171614] px-5 text-sm font-black text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">{isSaving && <Loader2 size={17} className="animate-spin"/>}{isSaving ? "Saving…" : "Save Changes"}</button>
   </div>;
-}
 
-function Field({ label, value, onChange, placeholder, maxLength, hint }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; maxLength?: number; hint?: string }) {
-  return <label className="block"><span className="text-sm font-bold">{label}</span><input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength} className="mt-2 min-h-11 w-full rounded-2xl border border-[#ded8ce] bg-white/70 px-4 text-sm outline-none transition focus:border-[#ef6b35] focus:ring-2 focus:ring-[#ef6b35]/15"/>{hint && <span className="mt-1 block text-xs text-[#777269]">{hint}</span>}</label>;
+  function Field({ label, value, onChange, placeholder, maxLength, hint }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; maxLength?: number; hint?: string }) {
+    return <label className="block"><span className="text-sm font-bold">{label}</span><input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength} className="mt-2 min-h-11 w-full rounded-2xl border border-[#ded8ce] bg-white/70 px-4 text-sm outline-none transition focus:border-[#ef6b35] focus:ring-2 focus:ring-[#ef6b35]/15"/>{hint && <span className="mt-1 block text-xs text-[#777269]">{hint}</span>}</label>;
+  }
 }

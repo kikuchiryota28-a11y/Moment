@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { deleteMoment } from "@/actions/moments";
+import { isSuccess } from "@/lib/action-result";
 
 export function MomentOwnerMenu({ momentId }: { momentId: string }) {
   const router = useRouter();
@@ -18,8 +19,11 @@ export function MomentOwnerMenu({ momentId }: { momentId: string }) {
     setError("");
     startTransition(async () => {
       const result = await deleteMoment(momentId);
-      if (!result.success) { setError(result.error); return; }
-      router.replace("/");
+      if (isSuccess(result)) {
+        router.replace("/");
+        return;
+      }
+      setError(result.error);
     });
   }
 

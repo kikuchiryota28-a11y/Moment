@@ -64,10 +64,12 @@ export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElemen
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, label, error, hint, maxLength, id, ...props }, ref) => {
+  ({ className, label, error, hint, maxLength, id, value, ...props }, ref) => {
     const textareaId = id || `textarea-${Math.random().toString(36).slice(2, 9)}`;
     const errorId = error ? `${textareaId}-error` : undefined;
     const hintId = hint ? `${textareaId}-hint` : undefined;
+
+    const valueLength = typeof value === "string" ? value.length : Array.isArray(value) ? value[0]?.length || 0 : 0;
 
     return (
       <div className="w-full">
@@ -92,11 +94,12 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
                 : "border-[var(--color-line)] hover:border-[var(--color-muted-ink)]/50",
               className
             )}
+            value={value}
             {...props}
           />
           {maxLength && (
             <div className="absolute bottom-3 right-3 text-xs text-[var(--color-muted-ink)]">
-              {props.value?.length || 0}/{maxLength}
+              {valueLength}/{maxLength}
             </div>
           )}
         </div>

@@ -46,7 +46,7 @@ export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
 Badge.displayName = "Badge";
 
 export interface PhaseBadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  phase: "planned" | "trying" | "completed" | "discover" | "enter" | "action" | "result" | "branch";
+  phase: "planned" | "trying" | "completed" | "discover" | "enter" | "action" | "result" | "branch" | "closed";
   size?: "sm" | "md";
 }
 
@@ -59,6 +59,7 @@ const phaseConfig = {
   action: { variant: "default" as const, label: "ACTION", dot: false },
   result: { variant: "success" as const, label: "RESULT", dot: false },
   branch: { variant: "accent" as const, label: "BRANCH", dot: false },
+  closed: { variant: "default" as const, label: "CLOSED", dot: false },
 };
 
 export const PhaseBadge = forwardRef<HTMLSpanElement, PhaseBadgeProps>(

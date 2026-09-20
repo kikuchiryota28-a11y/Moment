@@ -38,7 +38,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={`${inter.variable} ${syne.variable} ${jetbrainsMono.variable}`}>
       <body>
-        <ThemeProvider>
+        <ThemeProvider initialTheme="system">
           <ToastProvider>{children}</ToastProvider>
         </ThemeProvider>
       </body>

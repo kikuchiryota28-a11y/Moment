@@ -6,6 +6,7 @@ import { createMoment, updateMoment } from "@/actions/moments";
 import { MediaUploader, type UploadedMedia } from "@/components/create/MediaUploader";
 import { CATEGORIES } from "@/constants/categories";
 import type { Moment, MomentMedia } from "@/types/moment";
+import { isSuccess } from "@/lib/action-result";
 
 export function MomentForm({ mode, moment, media: initialMedia = [] }: { mode: "create" | "edit"; moment?: Moment; media?: MomentMedia[] }) {
   const router = useRouter();
@@ -38,11 +39,11 @@ export function MomentForm({ mode, moment, media: initialMedia = [] }: { mode: "
       const result = mode === "create"
         ? await createMoment(input)
         : await updateMoment({ ...input, momentId: moment!.id });
-      if (!result.success) {
-        setError(result.error);
+      if (isSuccess(result)) {
+        router.push(`/moment/${result.data.id}`);
         return;
       }
-      router.push(`/moment/${result.data.id}`);
+      setError(result.error);
     });
   }
 

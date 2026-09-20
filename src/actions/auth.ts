@@ -1,18 +1,18 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import type { ActionResult } from "@/types/action";
 
-export async function signIn(formData: FormData) {
+export async function signIn(formData: FormData): Promise<ActionResult<void>> {
   const sb = await createClient();
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
   const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`);
-  redirect("/");
+  if (error) return { success: false, error: error.message, code: "AUTH_FAILED" };
+  return { success: true };
 }
 
-export async function signUp(formData: FormData) {
+export async function signUp(formData: FormData): Promise<ActionResult<void>> {
   const sb = await createClient();
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
@@ -20,7 +20,7 @@ export async function signUp(formData: FormData) {
   const username = String(formData.get("username") ?? "");
 
   const { data, error } = await sb.auth.signUp({ email, password });
-  if (error) redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+  if (error) return { success: false, error: error.message, code: "AUTH_FAILED" };
 
   if (data.user) {
     const { error: profileError } = await sb.from("profiles").insert({
@@ -28,9 +28,9 @@ export async function signUp(formData: FormData) {
       username,
       display_name: displayName || username,
     });
-    if (profileError) redirect(`/signup?error=${encodeURIComponent(profileError.message)}`);
+    if (profileError) return { success: false, error: profileError.message, code: "PROFILE_FAILED" };
 
-    await sb.from("user_settings").insert({
+    const { error: settingsError } = await sb.from("user_settings").insert({
       user_id: data.user.id,
       theme: "system",
       notifications_enabled: true,
@@ -39,13 +39,15 @@ export async function signUp(formData: FormData) {
       activity_visibility: "public",
       experience_visibility: "public",
     });
+    if (settingsError) return { success: false, error: settingsError.message, code: "SETTINGS_FAILED" };
   }
 
-  redirect("/");
+  return { success: true };
 }
 
-export async function signOut() {
+export async function signOut(): Promise<ActionResult<void>> {
   const sb = await createClient();
-  await sb.auth.signOut();
-  redirect("/login");
+  const { error } = await sb.auth.signOut();
+  if (error) return { success: false, error: error.message, code: "SIGNOUT_FAILED" };
+  return { success: true };
 }

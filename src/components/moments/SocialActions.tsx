@@ -3,6 +3,7 @@
 import { useOptimistic, useState, useTransition } from "react";
 import { Heart, MessageCircle, Share2 } from "lucide-react";
 import { setMomentLike, addComment } from "@/actions/social";
+import { isSuccess } from "@/lib/action-result";
 
 export function SocialActions({ momentId, liked, likeCount }: { momentId: string; liked: boolean; likeCount: number }) {
   const [baseLike, setBaseLike] = useState({ liked, count: likeCount });
@@ -21,7 +22,7 @@ export function SocialActions({ momentId, liked, likeCount }: { momentId: string
     startTransition(async () => {
       setOptimisticLike(next);
       const result = await setMomentLike(momentId, nextLiked);
-      if (result.success) {
+      if (isSuccess(result)) {
         setBaseLike(next);
         return;
       }
@@ -38,7 +39,7 @@ export function SocialActions({ momentId, liked, likeCount }: { momentId: string
     setError("");
     void addComment(momentId, body).then((result) => {
       setCommentPending(false);
-      if (result.success) {
+      if (isSuccess(result)) {
         setComment("");
         return;
       }

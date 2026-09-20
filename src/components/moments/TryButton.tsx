@@ -3,6 +3,7 @@
 import { useOptimistic, useState, useTransition } from "react";
 import { tryMoment } from "@/actions/journeys";
 import type { JourneyStatus } from "@/types/moment";
+import { isSuccess } from "@/lib/action-result";
 
 export function TryButton({ momentId, initialStatus }: { momentId: string; initialStatus?: JourneyStatus | null }) {
   const [status, setStatus] = useState<JourneyStatus | null>(initialStatus ?? null);
@@ -16,8 +17,13 @@ export function TryButton({ momentId, initialStatus }: { momentId: string; initi
     startTransition(async () => {
       setOptimisticStatus("PLANNED");
       const result = await tryMoment(momentId);
-      if (result.success) { setStatus(result.data.status); return; }
-      setStatus(null); setOptimisticStatus(null); setError(result.error);
+      if (isSuccess(result)) {
+        setStatus(result.data.status);
+        return;
+      }
+      setStatus(null);
+      setOptimisticStatus(null);
+      setError(result.error);
     });
   }
 
